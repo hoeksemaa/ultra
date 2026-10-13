@@ -59,7 +59,7 @@ Feel: industrial, pragmatic, clear. Square corners, hairline grids, big tight he
 - The ring stops during REGRASP, NEED PILOT, and FAULT, and moves again when the robot recovers. It moves while a pilot works on the item.
 - A tote shows one cube per item, left-aligned. Cubes leave from right to left.
 - The selected robot gets an orange outline in every view.
-- Hover an order row and the row turns orange. Click it to select the order: the floor marks the order in orange where it is now. Waiting: its shelf containers. Picking: the picker, the picker's tote, and the containers still to pick. At a robot: the tote and its cubes. Shipping: the mailer. A second click clears it.
+- Hover an order row and the row turns orange. Click it to select the order: the floor marks the order in orange where it is now. Waiting: its shelf containers. Picking: the picker, the picker's tote, and the containers still to pick. At a robot: the tote and its cubes. Shipping: the mailer, filled solid orange and drawn on top of its neighbors, from the robot to the bin. A second click clears it.
 - One selection at a time: a robot or an order.
 - The action queue lists red robots first, then yellow robots, oldest first.
 - A recommendation that the operator can act on gets one orange button (`+1 PILOT`).
