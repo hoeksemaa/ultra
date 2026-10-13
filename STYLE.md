@@ -61,6 +61,7 @@ Feel: industrial, pragmatic, clear. Square corners, hairline grids, big tight he
 - The selected robot gets an orange outline in every view.
 - Hover an order row and the row turns orange. Click it to select the order: the floor marks the order in orange where it is now. Waiting: its shelf containers. Picking: the picker, the picker's tote, and the containers still to pick. At a robot: the tote and its cubes. Shipping: the mailer, filled solid orange and drawn on top of its neighbors, from the robot to the bin. A second click clears it.
 - One selection at a time: a robot or an order.
+- The order queue lists every active order, newest on top, and scrolls. An order leaves the list when its mailer is under the outbound bin.
 - The action queue lists red robots first, then yellow robots, oldest first.
 - A recommendation that the operator can act on gets one orange button (`+1 PILOT`).
 

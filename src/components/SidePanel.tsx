@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { BRANDS, CLASS_BASE, GRASP_CLASSES } from "@/sim/catalog";
 import {
   actions,
@@ -11,11 +12,13 @@ import {
   type Order,
   type Sim,
 } from "@/sim/engine";
+import type { View } from "./motion";
 import { ICONS } from "./icons";
 import { pct } from "./tokens";
 
 interface Props {
   sim: Sim;
+  view: View;
   selected: number | null;
   selectedOrder: number | null;
   onSelect: (robot: number) => void;
@@ -44,6 +47,51 @@ function Kpi({ label, value }: { label: string; value: string }) {
   );
 }
 
+// One order row. It only redraws when its own values change, so a long
+// list stays cheap at 30 fps.
+const OrderRow = memo(function OrderRow({
+  id,
+  brand,
+  items,
+  packed,
+  status,
+  tone,
+  robot,
+  selected,
+  onSelect,
+}: {
+  id: number;
+  brand: number;
+  items: number[];
+  packed: number;
+  status: string;
+  tone: string;
+  robot: string;
+  selected: boolean;
+  onSelect: (order: number) => void;
+}) {
+  const b = BRANDS[brand];
+  return (
+    <div className={`row ord pick ${selected ? "sel" : ""}`} onClick={() => onSelect(id)}>
+      <span>#{id}</span>
+      <span>{b.code}</span>
+      <span className="items" title={items.map((i) => b.items[i].name).join(" · ")}>
+        {/* Same order as the cubes in the tote: the first item packed is on
+            the right, so packed items fade from right to left. */}
+        {items
+          .map((i, k) => ({ i, done: k < packed }))
+          .reverse()
+          .map(({ i, done }) => {
+            const Icon = ICONS[b.items[i].icon];
+            return <Icon key={i} size={12} strokeWidth={2} className={done ? "packed" : undefined} />;
+          })}
+      </span>
+      <span className={tone || undefined}>{status}</span>
+      <span className="dim">{robot}</span>
+    </div>
+  );
+});
+
 const ORDER_STATUS: Record<Order["status"], string> = {
   queued: "WAITING",
   picking: "PICKING",
@@ -52,13 +100,17 @@ const ORDER_STATUS: Record<Order["status"], string> = {
   conveyor: "SHIPPING",
 };
 
-export default function SidePanel({ sim, selected, selectedOrder, onSelect, onSelectOrder, onAddPilot }: Props) {
+export default function SidePanel({ sim, view, selected, selectedOrder, onSelect, onSelectOrder, onAddPilot }: Props) {
   const s = sim;
   const perHour = ordersPerHour(s);
   const auto = autonomy(s);
   const busy = s.pilots.filter((p) => p.robot !== null).length;
   const acts = actions(s);
-  const orders = [...s.orders.values()].slice(0, 60);
+  // Every active order, newest on top; the panel scrolls. An order leaves the
+  // list when its mailer is under the outbound bin, not when the sim counts it.
+  const orders = [...s.orders.values()];
+  for (const m of view.mailers.values()) if (!s.orders.has(m.order)) orders.push(m.info);
+  orders.sort((a, b) => b.id - a.id);
 
   return (
     <aside className="side">
@@ -113,25 +165,19 @@ export default function SidePanel({ sim, selected, selectedOrder, onSelect, onSe
           {orders.map((o) => {
             const r = o.robot !== null ? s.robots[o.robot] : null;
             const light = o.status === "packing" && r ? robotLight(r) : null;
-            const status = light === "fault" ? robotLabel(r!) : ORDER_STATUS[o.status];
             return (
-              <div key={o.id} className={`row ord pick ${selectedOrder === o.id ? "sel" : ""}`} onClick={() => onSelectOrder(o.id)}>
-                <span>#{o.id}</span>
-                <span>{BRANDS[o.brand].code}</span>
-                <span className="items" title={o.items.map((i) => BRANDS[o.brand].items[i].name).join(" · ")}>
-                  {/* Same order as the cubes in the tote: the first item packed is on
-                      the right, so packed items fade from right to left. */}
-                  {o.items
-                    .map((i, k) => ({ i, packed: k < o.packed }))
-                    .reverse()
-                    .map(({ i, packed }) => {
-                      const Icon = ICONS[BRANDS[o.brand].items[i].icon];
-                      return <Icon key={i} size={12} strokeWidth={2} className={packed ? "packed" : undefined} />;
-                    })}
-                </span>
-                <span className={light === "fault" ? "t-fault" : o.status === "queued" ? "faint" : undefined}>{status}</span>
-                <span className="dim">{r && o.status !== "conveyor" ? robotName(r.id) : ""}</span>
-              </div>
+              <OrderRow
+                key={o.id}
+                id={o.id}
+                brand={o.brand}
+                items={o.items}
+                packed={o.packed}
+                status={light === "fault" ? robotLabel(r!) : ORDER_STATUS[o.status]}
+                tone={light === "fault" ? "t-fault" : o.status === "queued" ? "faint" : ""}
+                robot={r && o.status !== "conveyor" ? robotName(r.id) : ""}
+                selected={selectedOrder === o.id}
+                onSelect={onSelectOrder}
+              />
             );
           })}
         </div>
