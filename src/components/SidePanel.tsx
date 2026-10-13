@@ -7,10 +7,12 @@ import {
   robotLabel,
   robotLight,
   robotName,
+  robotProgress,
   type Order,
   type Sim,
 } from "@/sim/engine";
-import { pct } from "./tokens";
+import Ring from "./Ring";
+import { LIGHT_COLOR, pct } from "./tokens";
 
 interface Props {
   sim: Sim;
@@ -132,6 +134,9 @@ export default function SidePanel({ sim, selected, onSelect, onAddPilot }: Props
                   <span className={`dot ${light}`} />
                   <span className={`t-${light}`}>{robotLabel(r)}</span>
                 </span>
+                <svg width={14} height={14} viewBox="0 0 14 14" aria-hidden>
+                  <Ring cx={7} cy={7} r={5} width={2} value={robotProgress(r)} color={LIGHT_COLOR[light]} />
+                </svg>
               </div>
             );
           })}

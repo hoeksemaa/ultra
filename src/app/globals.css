@@ -156,6 +156,8 @@ button {
 }
 .chip:first-child { margin-left: 0; }
 .chip:hover { border-color: var(--white); z-index: 1; }
+.chip:disabled { color: var(--white-30); cursor: default; }
+.chip:disabled:hover { border-color: var(--white-50); z-index: 0; }
 .chip.on {
   background: var(--orange);
   border-color: var(--orange);
@@ -319,7 +321,8 @@ button {
 }
 .row > * { overflow: hidden; text-overflow: ellipsis; }
 .row.ord { grid-template-columns: 52px 40px minmax(0, 1fr) 40px; }
-.row.rob { grid-template-columns: 30px minmax(0, 1fr); cursor: pointer; }
+.row.rob { grid-template-columns: 30px minmax(0, 1fr) 14px; cursor: pointer; }
+.row.rob svg { display: block; }
 .row.rob:hover { background: var(--white-04); }
 .row.head { color: var(--white-50); font-weight: 600; }
 .st { display: flex; align-items: center; gap: 6px; }
