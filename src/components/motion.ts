@@ -1,7 +1,7 @@
 // Screen positions for the things that move on the pack line. The sim says
 // where each tote, cube, and mailer belongs; the view slides it there, so
 // nothing jumps, appears, or vanishes in place.
-import { BIN_X, CONVEYOR_SPEED, CONVEYOR_Y, DROP_Y, ROBOT_W, ROBOT_Y, robotCx, robotX, type Sim } from "@/sim/engine";
+import { BIN_X, CONVEYOR_SPEED, CONVEYOR_Y, DROP_Y, ROBOT_W, ROBOT_Y, robotCx, robotX, type Order, type Sim } from "@/sim/engine";
 
 export const TOTE_W = 30;
 export const TOTE_H = 12;
@@ -40,6 +40,7 @@ export interface CubeView extends Body {
 
 export interface MailerView {
   order: number;
+  info: Order; // kept so the order queue can list it until it is in the bin
   x: number;
   y: number;
   // pack: cubes still sliding into the robot (mailer not drawn yet)
@@ -141,7 +142,7 @@ export function updateView(v: View, s: Sim, dt: number): boolean {
     if (v.mailers.has(m.order)) continue;
     const o = s.orders.get(m.order)!;
     addCubes(o.id, o.robot!, o.items.length);
-    v.mailers.set(m.order, { order: m.order, x: robotCx(o.robot!) - MAILER_W / 2, y: MAILER_UP, stage: "pack", drop: 0 });
+    v.mailers.set(m.order, { order: m.order, info: o, x: robotCx(o.robot!) - MAILER_W / 2, y: MAILER_UP, stage: "pack", drop: 0 });
   }
   let moving = false;
   for (const [id, mv] of v.mailers) {

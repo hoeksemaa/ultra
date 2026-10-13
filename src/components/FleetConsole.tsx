@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { STEP, createSim, fmtClock, setPilotTarget, step, type Sim } from "@/sim/engine";
 import FloorView from "./FloorView";
 import { createView, updateView, type View } from "./motion";
@@ -73,10 +73,10 @@ export default function FleetConsole() {
     setSelectedOrder(null);
     setSelected((cur) => (cur === r ? null : r));
   };
-  const onSelectOrder = (id: number) => {
+  const onSelectOrder = useCallback((id: number) => {
     setSelected(null);
     setSelectedOrder((cur) => (cur === id ? null : id));
-  };
+  }, []);
 
   return (
     <div className="app">
@@ -130,6 +130,7 @@ export default function FleetConsole() {
         </div>
         <SidePanel
           sim={sim}
+          view={view}
           selected={selected}
           selectedOrder={selectedOrder}
           onSelect={onSelect}
