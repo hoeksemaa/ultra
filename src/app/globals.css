@@ -321,6 +321,12 @@ button {
 .row.ord { grid-template-columns: 52px 38px 44px minmax(0, 1fr) 40px; }
 .row .items { display: flex; gap: 4px; }
 .row .items svg { display: block; flex: none; }
+.row .items svg.packed { opacity: 0.3; }
+/* Order rows: hover turns the row orange; a click selects the order. */
+.row.pick { cursor: pointer; }
+.row.pick:hover > span,
+.row.pick.sel > span { color: var(--orange); }
+.row.pick.sel { background: var(--white-04); }
 .row.head { color: var(--white-50); font-weight: 600; }
 .st { display: flex; align-items: center; gap: 6px; }
 

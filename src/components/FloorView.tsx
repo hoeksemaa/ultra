@@ -61,13 +61,14 @@ const ItemIcon = memo(function ItemIcon({ name, x, y }: { name: IconName; x: num
 });
 
 // A tote with one cube for each item still in it, left-aligned.
-function Tote({ x, y, cubes, active }: { x: number; y: number; cubes: number; active: boolean }) {
+function Tote({ x, y, cubes, active, hi }: { x: number; y: number; cubes: number; active: boolean; hi: boolean }) {
+  const stroke = hi ? C.orange : active ? C.white : C.w50;
   return (
     <g>
-      <rect x={x} y={y} width={TOTE_W} height={TOTE_H} fill={C.charcoal} stroke={active ? C.white : C.w50} strokeWidth={active ? 1.5 : 1} />
+      <rect x={x} y={y} width={TOTE_W} height={TOTE_H} fill={C.charcoal} stroke={stroke} strokeWidth={hi ? 2 : active ? 1.5 : 1} />
       {Array.from({ length: cubes }, (_, slot) => {
         const c = cubeInTote({ x, y }, slot);
-        return <rect key={slot} x={c.x} y={c.y} width={CUBE} height={CUBE} fill={C.w70} />;
+        return <rect key={slot} x={c.x} y={c.y} width={CUBE} height={CUBE} fill={hi ? C.orange : C.w70} />;
       })}
     </g>
   );
@@ -77,6 +78,7 @@ interface Props {
   sim: Sim;
   view: View;
   selected: number | null;
+  selectedOrder: number | null;
   onSelect: (robot: number) => void;
 }
 
@@ -102,8 +104,17 @@ function Label({
   );
 }
 
-export default function FloorView({ sim, view, selected, onSelect }: Props) {
+export default function FloorView({ sim, view, selected, selectedOrder, onSelect }: Props) {
   const s = sim;
+  // The selected order, marked in orange where it is now: its items on the
+  // shelves (waiting or still to pick), the picker, its tote and cubes, or
+  // its mailer.
+  const so = selectedOrder;
+  const order = so !== null ? s.orders.get(so) : undefined;
+  const picker = so !== null ? s.pickers.find((p) => p.order === so) : undefined;
+  const onShelf = new Set<string>();
+  if (order?.status === "queued") for (const i of order.items) onShelf.add(BRANDS[order.brand].items[i].sku);
+  if (order && picker) for (const st of picker.stops) onShelf.add(BRANDS[order.brand].items[st.item].sku);
   const [tip, setTip] = useState<Tip | null>(null);
 
   return (
@@ -155,7 +166,8 @@ export default function FloorView({ sim, view, selected, onSelect }: Props) {
                     width={CELL_W}
                     height={CELL_H}
                     fill={glow > 0 ? `rgba(255,255,255,${glow.toFixed(3)})` : "transparent"}
-                    stroke={C.w12}
+                    stroke={onShelf.has(it.sku) ? C.orange : C.w12}
+                    strokeWidth={onShelf.has(it.sku) ? 2 : 1}
                   />
                   <ItemIcon name={it.icon} x={x + (CELL_W - ICON) / 2} y={y + 8} />
                   <text x={x + CELL_W / 2} y={y + 42} fontSize={9.5} fill={C.w50} fontFamily={MONO} textAnchor="middle" className="metric">
@@ -176,7 +188,7 @@ export default function FloorView({ sim, view, selected, onSelect }: Props) {
       {/* Totes first, so an empty tote can slide down behind its robot. */}
       {[...view.totes.values()].map((t) => {
         const o = s.orders.get(t.order);
-        return <Tote key={t.order} x={t.x} y={t.y} cubes={o ? o.items.length - o.packed : 0} active={t.active} />;
+        return <Tote key={t.order} x={t.x} y={t.y} cubes={o ? o.items.length - o.packed : 0} active={t.active} hi={t.order === so} />;
       })}
 
       {s.robots.map((r) => {
@@ -224,7 +236,7 @@ export default function FloorView({ sim, view, selected, onSelect }: Props) {
 
       {/* Packed cubes, on top of the robots they slide into. */}
       {[...view.cubes.entries()].map(([key, c]) => (
-        <rect key={key} x={c.x} y={c.y} width={CUBE} height={CUBE} fill={C.w70} />
+        <rect key={key} x={c.x} y={c.y} width={CUBE} height={CUBE} fill={c.order === so ? C.orange : C.w70} />
       ))}
 
       {/* Conveyor */}
@@ -235,7 +247,18 @@ export default function FloorView({ sim, view, selected, onSelect }: Props) {
         return <line key={i} x1={lx} x2={lx} y1={CONVEYOR_Y + 2} y2={CONVEYOR_Y + CONVEYOR_H - 2} stroke={C.w12} />;
       })}
       {[...view.mailers.values()].map((m) =>
-        m.stage === "pack" ? null : <rect key={m.order} x={m.x} y={m.y} width={MAILER_W} height={MAILER_H} fill={C.paper} />,
+        m.stage === "pack" ? null : (
+          <rect
+            key={m.order}
+            x={m.x}
+            y={m.y}
+            width={MAILER_W}
+            height={MAILER_H}
+            fill={C.paper}
+            stroke={m.order === so ? C.orange : "none"}
+            strokeWidth={2}
+          />
+        ),
       )}
 
       {/* Outbound bin */}
@@ -274,8 +297,9 @@ export default function FloorView({ sim, view, selected, onSelect }: Props) {
       {/* ---------- Pickers ---------- */}
       {s.pickers.map((p) => (
         <g key={p.id}>
-          <circle cx={p.x} cy={p.y} r={4.5} fill={p.task === "idle" ? C.w30 : C.w70} />
-          {p.order !== null && <rect x={p.x + 5} y={p.y - 9} width={10} height={6} fill={C.charcoal} stroke={C.w70} />}
+          {p === picker && <circle cx={p.x} cy={p.y} r={8.5} fill="none" stroke={C.orange} strokeWidth={1.5} />}
+          <circle cx={p.x} cy={p.y} r={4.5} fill={p === picker ? C.orange : p.task === "idle" ? C.w30 : C.w70} />
+          {p.order !== null && <rect x={p.x + 5} y={p.y - 9} width={10} height={6} fill={C.charcoal} stroke={p === picker ? C.orange : C.w70} />}
         </g>
       ))}
 
