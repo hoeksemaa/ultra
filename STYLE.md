@@ -61,7 +61,8 @@ Feel: industrial, pragmatic, clear. Square corners, hairline grids, big tight he
 ## Keep it quiet
 - Show a number only when the operator acts on it or tracks it. The console has 3 KPIs: `ORDERS / HR`, `AUTONOMY`, `PILOTS BUSY`.
 - Do not put captions or subtitles under section headings. The section name is enough.
-- Put item names and weights in hover tooltips, not on the map.
+- Put item names, weights, and brand descriptions in hover popups, not on the map.
+- A pick container shows only its icon and its stock count (`×3`, `×123`).
 
 ## Type
 
@@ -86,6 +87,8 @@ Scale for an app screen: H1 40 · H2 24 · H3 18 · Body 16 · Small 14 · Label
 - **Buttons:**
   - Primary: solid orange, mono uppercase, 4 small square ticks (4×4px, white) at the corners.
   - Secondary: transparent, 1px white outline.
+- **Hover popup:** charcoal fill, 1px `--white-70` border, square corners. Mono uppercase title, then one sans sentence in `--white-70`.
+- **Item icons:** Lucide line icons (`lucide-react`), 1.75 stroke, `--white-70`. One icon per item, and each icon matches its brand. No emoji and no color.
 - Spacing: 8px grid.
 
 ## Motion
