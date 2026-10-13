@@ -32,11 +32,11 @@ export const ROBOT_PITCH = 50.4;
 export const ROBOT_W = 40;
 export const DROP_Y = AISLE_Y + 46;
 export const ROBOT_Y = DROP_Y + 128;
-export const ROBOT_H = 52;
+export const ROBOT_H = 60;
 export const QUEUE_CAP = 6;
 
 export const CONVEYOR_X0 = 24;
-export const CONVEYOR_Y = ROBOT_Y + 84;
+export const CONVEYOR_Y = ROBOT_Y + ROBOT_H + 32;
 export const CONVEYOR_H = 22;
 export const BIN_X = 1052;
 export const BIN_W = 116;
@@ -47,6 +47,7 @@ export const VIEW_H = LEARN_Y + 68;
 
 const WALK_SPEED = 15; // units/s (1.5 m/s)
 const CONVEYOR_SPEED = 8; // units/s (0.8 m/s)
+const MAILER_HOLD = 1.5; // seconds a new mailer waits at the robot
 export const STEP = 0.1; // fixed sim step, seconds
 
 export interface Pt {
@@ -175,6 +176,7 @@ export interface Pilot {
 export interface Mailer {
   order: number;
   x: number;
+  hold: number; // seconds left before the belt moves it (it drops onto the belt first)
 }
 
 export interface Sim {
@@ -358,9 +360,10 @@ function planOrder(s: Sim, o: Order): Step[] {
   return steps;
 }
 
-// Ring weight of a step. A fault counts as 0, so the ring stops during it.
+// Ring weight of a step. A fault or a regrasp counts as 0, so the ring
+// stops while the robot is red or yellow and does not jump after.
 function work(st: Step) {
-  return st.phase === "fault" ? 0 : st.dur;
+  return st.phase === "fault" || st.phase === "regrasp" ? 0 : st.dur;
 }
 
 function enterStep(s: Sim, r: Robot) {
@@ -390,7 +393,7 @@ function nextStep(s: Sim, r: Robot) {
   }
   // All items are packed: the tote leaves and the mailer ships.
   o.status = "conveyor";
-  s.mailers.push({ order: o.id, x: robotCx(r.id) - 7 });
+  s.mailers.push({ order: o.id, x: robotCx(r.id) - 7, hold: MAILER_HOLD });
   s.recent.push(o.assists === 0);
   if (s.recent.length > 100) s.recent.shift();
   s.packTimes.push(s.t);
@@ -550,8 +553,13 @@ export function step(s: Sim, dt: number) {
   // Conveyor to the outbound bin.
   for (let i = s.mailers.length - 1; i >= 0; i--) {
     const m = s.mailers[i];
+    if (m.hold > 0) {
+      m.hold -= dt;
+      continue;
+    }
     m.x += CONVEYOR_SPEED * dt;
-    if (m.x >= BIN_X - 4) {
+    // The bin covers the mailer before it leaves the belt.
+    if (m.x >= BIN_X) {
       s.mailers.splice(i, 1);
       s.orders.delete(m.order);
       s.shipped++;
@@ -576,8 +584,8 @@ export function robotLight(r: Robot): Light {
 }
 
 // Share of the current item that is done, or null with no order. One full
-// ring is one item. The ring stops while the robot waits for a pilot or has
-// a fault, and moves while the robot or a pilot works on the item.
+// ring is one item. The ring stops during a regrasp, a pilot wait, or a
+// fault, and moves while the robot or a pilot works on the item.
 export function robotProgress(r: Robot): number | null {
   if (r.order === null || r.steps.length === 0) return null;
   const st = r.steps[0];
@@ -586,7 +594,7 @@ export function robotProgress(r: Robot): number | null {
     if (x.item !== st.item) break;
     rest += work(x);
   }
-  const moving = r.phase === "pack" || r.phase === "regrasp" || r.phase === "pilot";
+  const moving = r.phase === "pack" || r.phase === "pilot";
   const now = moving && r.stepDur > 0 ? work(st) * (1 - Math.max(0, r.t) / r.stepDur) : 0;
   const total = r.done + rest;
   return total > 0 ? Math.min(1, (r.done + now) / total) : 0;

@@ -55,7 +55,9 @@ Feel: industrial, pragmatic, clear. Square corners, hairline grids, big tight he
 | System fault, an operator must fix it | fault | `● FAULT` |
 
 - Use one label for each state, in every view.
-- Each robot shows a progress ring for its current order: a hairline track, and an arc in the status color that runs clockwise from the top. Square line ends. The ring stops while the robot is red, and it moves again when the robot recovers.
+- Each robot shows a progress ring for its current item: a hairline track, and an arc in the status color that runs clockwise from the top. Square line ends. One full ring is one item.
+- The ring stops during REGRASP, NEED PILOT, and FAULT, and moves again when the robot recovers. It moves while a pilot works on the item.
+- A tote shows one cube per item, left-aligned. Cubes leave from right to left.
 - The selected robot gets an orange outline in every view.
 - The action queue lists red robots first, then yellow robots, oldest first.
 - A recommendation that the operator can act on gets one orange button (`+1 PILOT`).
@@ -96,6 +98,12 @@ Scale for an app screen: H1 40 · H2 24 · H3 18 · Body 16 · Small 14 · Label
 ## Motion
 - Short and mechanical: 150–200ms, ease-out. No bounce.
 - A status change can flash once. Nothing loops except a live "running" indicator and the conveyor.
+- **Object permanence.** Totes, cubes, and mailers slide between places (ease-out, 0.1 s time constant). Nothing appears or vanishes in place:
+  - A new tote slides down from the picker drop point into its queue slot.
+  - A packed cube slides from the tote into the robot's pack area.
+  - The mailer forms in the pack area, slides out onto the belt, and slides under the outbound bin.
+  - An empty tote slides down into the robot's tote return, behind the robot body.
+- Surfaces that things slide behind (robot bodies, the outbound bin) are opaque.
 
 ## Copy voice
 - Short, plain, declarative. Ultra: "Industrial AI robots that work." "Roll it up, plug it in, turn it on."

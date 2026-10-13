@@ -34,6 +34,7 @@ import {
   type Sim,
 } from "@/sim/engine";
 import { ICONS, type IconName } from "./icons";
+import { CUBE, MAILER_H, MAILER_W, PACK_X, PACK_Y, TOTE_H, TOTE_W, cubeInTote, type View } from "./motion";
 import Ring from "./Ring";
 import { C, LIGHT_COLOR, pct } from "./tokens";
 
@@ -42,10 +43,6 @@ const SANS = "var(--font-sans)";
 
 const ICON = 20;
 
-const TOTE_W = 30;
-const TOTE_H = 12;
-const TOTE_PITCH = 16;
-const CUBE = 6;
 
 const BIN_TOP = ROBOT_Y - 106;
 const BIN_BOTTOM = CONVEYOR_Y + CONVEYOR_H;
@@ -65,21 +62,22 @@ const ItemIcon = memo(function ItemIcon({ name, x, y }: { name: IconName; x: num
   return <Icon x={x} y={y} size={ICON} color={C.w70} strokeWidth={1.75} />;
 });
 
-// A tote with one cube for each item still in it.
+// A tote with one cube for each item still in it, left-aligned.
 function Tote({ x, y, cubes, active }: { x: number; y: number; cubes: number; active: boolean }) {
-  const w = cubes * CUBE + (cubes - 1) * 2;
   return (
     <g>
       <rect x={x} y={y} width={TOTE_W} height={TOTE_H} fill={C.charcoal} stroke={active ? C.white : C.w50} strokeWidth={active ? 1.5 : 1} />
-      {Array.from({ length: cubes }, (_, i) => (
-        <rect key={i} x={x + (TOTE_W - w) / 2 + i * (CUBE + 2)} y={y + (TOTE_H - CUBE) / 2} width={CUBE} height={CUBE} fill={C.w70} />
-      ))}
+      {Array.from({ length: cubes }, (_, slot) => {
+        const c = cubeInTote({ x, y }, slot);
+        return <rect key={slot} x={c.x} y={c.y} width={CUBE} height={CUBE} fill={C.w70} />;
+      })}
     </g>
   );
 }
 
 interface Props {
   sim: Sim;
+  view: View;
   selected: number | null;
   onSelect: (robot: number) => void;
 }
@@ -106,7 +104,7 @@ function Label({
   );
 }
 
-export default function FloorView({ sim, selected, onSelect }: Props) {
+export default function FloorView({ sim, view, selected, onSelect }: Props) {
   const s = sim;
   const [tip, setTip] = useState<Tip | null>(null);
 
@@ -177,21 +175,20 @@ export default function FloorView({ sim, selected, onSelect }: Props) {
         02 · Pack line
       </Label>
 
+      {/* Totes first, so an empty tote can slide down behind its robot. */}
+      {[...view.totes.values()].map((t) => {
+        const o = s.orders.get(t.order);
+        return <Tote key={t.order} x={t.x} y={t.y} cubes={o ? o.items.length - o.packed : 0} active={t.active} />;
+      })}
+
       {s.robots.map((r) => {
         const x = robotX(r.id);
         const color = LIGHT_COLOR[robotLight(r)];
         const sel = selected === r.id;
         const flashAge = s.t - r.flash;
-        const order = r.order !== null ? s.orders.get(r.order) : undefined;
-        const tx = x + (ROBOT_W - TOTE_W) / 2;
         return (
           <g key={r.id} className="robot-hit" onClick={() => onSelect(r.id)}>
             <rect x={x - 4} y={DROP_Y} width={ROBOT_W + 8} height={ROBOT_Y + ROBOT_H + 24 - DROP_Y} fill="transparent" />
-            {/* The tote in work sits next to the robot; queued totes stack above it. */}
-            {order && <Tote x={tx} y={ROBOT_Y - 6 - TOTE_PITCH} cubes={order.items.length - order.packed} active />}
-            {r.queue.map((oid, k) => (
-              <Tote key={oid} x={tx} y={ROBOT_Y - 6 - (k + 2) * TOTE_PITCH} cubes={s.orders.get(oid)!.items.length} active={false} />
-            ))}
             {flashAge < 2.5 && (
               <rect
                 x={x - 3}
@@ -209,21 +206,28 @@ export default function FloorView({ sim, selected, onSelect }: Props) {
               y={ROBOT_Y}
               width={ROBOT_W}
               height={ROBOT_H}
-              fill={sel ? "rgba(255,79,0,0.10)" : C.w04}
+              fill={sel ? C.selFill : C.panel}
               stroke={sel ? C.orange : C.w50}
               strokeWidth={sel ? 2 : 1}
             />
             <rect x={x} y={ROBOT_Y + ROBOT_H - 4} width={ROBOT_W} height={4} fill={color} />
-            <text x={x + ROBOT_W / 2} y={ROBOT_Y + 14} fontSize={10} fill={sel ? C.orange : C.white} fontFamily={MONO} fontWeight={700} textAnchor="middle">
+            <text x={x + ROBOT_W / 2} y={ROBOT_Y + 13} fontSize={10} fill={sel ? C.orange : C.white} fontFamily={MONO} fontWeight={700} textAnchor="middle">
               {robotName(r.id)}
             </text>
-            <Ring cx={x + ROBOT_W / 2} cy={ROBOT_Y + 31} r={8} width={3} value={robotProgress(r)} color={color} />
+            <Ring cx={x + ROBOT_W / 2} cy={ROBOT_Y + 29} r={8} width={3} value={robotProgress(r)} color={color} />
+            {/* Pack area: packed cubes wait here for the mailer. */}
+            <rect x={x + PACK_X - 2} y={ROBOT_Y + PACK_Y - 2} width={ROBOT_W - 2 * (PACK_X - 2)} height={CUBE + 4} fill="none" stroke={C.w12} />
             <text x={x + ROBOT_W / 2} y={ROBOT_Y + ROBOT_H + 13} fontSize={6.8} fill={color} fontFamily={MONO} fontWeight={600} textAnchor="middle">
               {robotLabel(r)}
             </text>
           </g>
         );
       })}
+
+      {/* Packed cubes, on top of the robots they slide into. */}
+      {[...view.cubes.entries()].map(([key, c]) => (
+        <rect key={key} x={c.x} y={c.y} width={CUBE} height={CUBE} fill={C.w70} />
+      ))}
 
       {/* Conveyor */}
       <rect x={CONVEYOR_X0} y={CONVEYOR_Y} width={BIN_X - CONVEYOR_X0} height={CONVEYOR_H} fill={C.w04} stroke={C.w30} />
@@ -232,12 +236,12 @@ export default function FloorView({ sim, selected, onSelect }: Props) {
         if (lx >= BIN_X) return null;
         return <line key={i} x1={lx} x2={lx} y1={CONVEYOR_Y + 2} y2={CONVEYOR_Y + CONVEYOR_H - 2} stroke={C.w12} />;
       })}
-      {s.mailers.map((m) => (
-        <rect key={m.order} x={m.x} y={CONVEYOR_Y + 5} width={14} height={12} fill={C.paper} />
-      ))}
+      {[...view.mailers.values()].map((m) =>
+        m.stage === "pack" ? null : <rect key={m.order} x={m.x} y={m.y} width={MAILER_W} height={MAILER_H} fill={C.paper} />,
+      )}
 
       {/* Outbound bin */}
-      <rect x={BIN_X} y={BIN_TOP} width={BIN_W} height={BIN_BOTTOM - BIN_TOP} fill={C.w04} stroke={C.w30} />
+      <rect x={BIN_X} y={BIN_TOP} width={BIN_W} height={BIN_BOTTOM - BIN_TOP} fill={C.panel} stroke={C.w30} />
       <Label x={BIN_X + 8} y={BIN_TOP + 16} fill={C.white}>
         Outbound
       </Label>
