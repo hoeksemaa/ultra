@@ -156,8 +156,6 @@ button {
 }
 .chip:first-child { margin-left: 0; }
 .chip:hover { border-color: var(--white); z-index: 1; }
-.chip:disabled { color: var(--white-30); cursor: default; }
-.chip:disabled:hover { border-color: var(--white-50); z-index: 0; }
 .chip.on {
   background: var(--orange);
   border-color: var(--orange);

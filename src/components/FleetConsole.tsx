@@ -2,12 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { STEP, createSim, fmtClock, setPilotTarget, step, type Sim } from "@/sim/engine";
-import { record, rewind } from "@/sim/history";
 import FloorView from "./FloorView";
 import SidePanel from "./SidePanel";
 
 const SPEEDS = [1, 10, 60];
-const REWIND = 10; // seconds of playback that one click undoes
 
 export default function FleetConsole() {
   const [sim, setSim] = useState<Sim>(() => createSim());
@@ -16,7 +14,6 @@ export default function FleetConsole() {
   const [paused, setPaused] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const live = useRef({ sim, speed, paused });
-  const history = useRef<Sim[]>([]);
 
   useEffect(() => {
     live.current = { sim, speed, paused };
@@ -35,7 +32,6 @@ export default function FleetConsole() {
       if (!c.paused) {
         acc += dt * c.speed;
         while (acc >= STEP) {
-          record(history.current, c.sim);
           step(c.sim, STEP);
           acc -= STEP;
         }
@@ -49,17 +45,6 @@ export default function FleetConsole() {
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, []);
-
-  // Swap in a new sim now, so the loop never steps the old one.
-  const load = (next: Sim) => {
-    live.current = { ...live.current, sim: next };
-    setSim(next);
-  };
-
-  const onRewind = () => {
-    const back = rewind(history.current, live.current.sim.t - REWIND * speed);
-    if (back) load(back);
-  };
 
   const changePilots = (n: number) => {
     setPilotTarget(sim, sim.pilotTarget + n);
@@ -78,17 +63,13 @@ export default function FleetConsole() {
         <div className="metric clock">{fmtClock(sim.t)}</div>
         <div className="controls">
           <div className="ctl-row">
-            <button className="chip" onClick={onRewind} disabled={sim.t < 1} title={`Back ${REWIND} s of playback`}>
-              Rewind
-            </button>
             <button className="chip" onClick={() => setPaused((p) => !p)}>
               {paused ? "Play" : "Pause"}
             </button>
             <button
               className="chip"
               onClick={() => {
-                history.current = [];
-                load(createSim());
+                setSim(createSim());
                 setSelected(null);
               }}
             >
