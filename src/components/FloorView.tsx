@@ -45,6 +45,7 @@ const ICON = 20;
 const TOTE_W = 30;
 const TOTE_H = 12;
 const TOTE_PITCH = 16;
+const CUBE = 6;
 
 const BIN_TOP = ROBOT_Y - 106;
 const BIN_BOTTOM = CONVEYOR_Y + CONVEYOR_H;
@@ -63,6 +64,19 @@ const ItemIcon = memo(function ItemIcon({ name, x, y }: { name: IconName; x: num
   const Icon = ICONS[name];
   return <Icon x={x} y={y} size={ICON} color={C.w70} strokeWidth={1.75} />;
 });
+
+// A tote with one cube for each item still in it.
+function Tote({ x, y, cubes, active }: { x: number; y: number; cubes: number; active: boolean }) {
+  const w = cubes * CUBE + (cubes - 1) * 2;
+  return (
+    <g>
+      <rect x={x} y={y} width={TOTE_W} height={TOTE_H} fill={C.charcoal} stroke={active ? C.white : C.w50} strokeWidth={active ? 1.5 : 1} />
+      {Array.from({ length: cubes }, (_, i) => (
+        <rect key={i} x={x + (TOTE_W - w) / 2 + i * (CUBE + 2)} y={y + (TOTE_H - CUBE) / 2} width={CUBE} height={CUBE} fill={C.w70} />
+      ))}
+    </g>
+  );
+}
 
 interface Props {
   sim: Sim;
@@ -168,19 +182,15 @@ export default function FloorView({ sim, selected, onSelect }: Props) {
         const color = LIGHT_COLOR[robotLight(r)];
         const sel = selected === r.id;
         const flashAge = s.t - r.flash;
+        const order = r.order !== null ? s.orders.get(r.order) : undefined;
+        const tx = x + (ROBOT_W - TOTE_W) / 2;
         return (
           <g key={r.id} className="robot-hit" onClick={() => onSelect(r.id)}>
             <rect x={x - 4} y={DROP_Y} width={ROBOT_W + 8} height={ROBOT_Y + ROBOT_H + 24 - DROP_Y} fill="transparent" />
+            {/* The tote in work sits next to the robot; queued totes stack above it. */}
+            {order && <Tote x={tx} y={ROBOT_Y - 6 - TOTE_PITCH} cubes={order.items.length - order.packed} active />}
             {r.queue.map((oid, k) => (
-              <rect
-                key={oid}
-                x={x + (ROBOT_W - TOTE_W) / 2}
-                y={ROBOT_Y - 6 - (k + 1) * TOTE_PITCH}
-                width={TOTE_W}
-                height={TOTE_H}
-                fill={C.charcoal}
-                stroke={C.w50}
-              />
+              <Tote key={oid} x={tx} y={ROBOT_Y - 6 - (k + 2) * TOTE_PITCH} cubes={s.orders.get(oid)!.items.length} active={false} />
             ))}
             {flashAge < 2.5 && (
               <rect

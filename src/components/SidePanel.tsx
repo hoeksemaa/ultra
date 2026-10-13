@@ -11,6 +11,7 @@ import {
   type Order,
   type Sim,
 } from "@/sim/engine";
+import { ICONS } from "./icons";
 import Ring from "./Ring";
 import { LIGHT_COLOR, pct } from "./tokens";
 
@@ -103,6 +104,7 @@ export default function SidePanel({ sim, selected, onSelect, onAddPilot }: Props
           <div className="row ord head">
             <span>ORDER</span>
             <span>BRAND</span>
+            <span>ITEMS</span>
             <span>STATUS</span>
             <span>ROBOT</span>
           </div>
@@ -114,6 +116,13 @@ export default function SidePanel({ sim, selected, onSelect, onAddPilot }: Props
               <div key={o.id} className={`row ord ${r && selected === r.id && o.status !== "conveyor" ? "sel" : ""}`}>
                 <span>#{o.id}</span>
                 <span>{BRANDS[o.brand].code}</span>
+                <span className="items" title={o.items.map((i) => BRANDS[o.brand].items[i].name).join(" · ")}>
+                  {o.items.map((i, k) => {
+                    const Icon = ICONS[BRANDS[o.brand].items[i].icon];
+                    // Packed items fade out.
+                    return <Icon key={i} size={12} strokeWidth={2} color={k < o.packed ? "var(--white-30)" : "var(--white)"} />;
+                  })}
+                </span>
                 <span className={light === "fault" ? "t-fault" : o.status === "queued" ? "faint" : undefined}>{status}</span>
                 <span className="dim">{r && o.status !== "conveyor" ? robotName(r.id) : ""}</span>
               </div>

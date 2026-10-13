@@ -318,7 +318,9 @@ button {
   white-space: nowrap;
 }
 .row > * { overflow: hidden; text-overflow: ellipsis; }
-.row.ord { grid-template-columns: 52px 40px minmax(0, 1fr) 40px; }
+.row.ord { grid-template-columns: 52px 38px 44px minmax(0, 1fr) 40px; }
+.row .items { display: flex; gap: 4px; }
+.row .items svg { display: block; flex: none; }
 .row.rob { grid-template-columns: 30px minmax(0, 1fr) 14px; cursor: pointer; }
 .row.rob svg { display: block; }
 .row.rob:hover { background: var(--white-04); }

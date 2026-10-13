@@ -10,6 +10,7 @@ Feel: industrial, pragmatic, clear. Square corners, hairline grids, big tight he
 - Do not use Ultra's logo, wordmark, or the robot mark.
 - Do not load their font files. Saans (Displaay) and NB Architekt Pro (Neubau) are commercial fonts. Use the free substitutes below.
 - Show "Unofficial demo by John Hoeksema" in the header or footer.
+- The 3PL site is hypothetical. It matches Ultra's real business, but it carries no real company's name or branding.
 - All brands, items, and numbers in the demo are fictional. Do not name real customers.
 
 ## Colors
