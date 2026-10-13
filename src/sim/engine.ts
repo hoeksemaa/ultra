@@ -8,15 +8,19 @@ import { BRANDS, CLASS_BASE, GRASP_CLASSES, type GraspClass, type Item } from ".
 
 export const VIEW_W = 1200;
 
-// Pick floor: one row of 10 racks, one per brand, with an aisle in front.
-export const RACK_X0 = 32;
-export const RACK_PITCH = 113.6;
-export const RACK_W = 106;
+// Pick floor: one row of 10 racks, one per brand. An aisle runs on each
+// side of every rack, so a picker reaches each container from the aisle
+// next to its column. The front aisle connects the aisles to the pack line.
+export const FLOOR_X0 = 32;
+export const RACK_COUNT = 10;
+export const RACK_W = 86;
+export const AISLE_W = (1136 - RACK_COUNT * RACK_W) / (RACK_COUNT + 1);
+export const RACK_PITCH = RACK_W + AISLE_W;
 export const RACK_Y = 40;
 export const RACK_HEAD = 34;
 export const RACK_COLS = 2;
 export const RACK_ROWS = 5;
-export const CELL_W = 45;
+export const CELL_W = 38;
 export const CELL_H = 50;
 export const CELL_GAP = 4;
 export const RACK_H = RACK_HEAD + RACK_ROWS * CELL_H + (RACK_ROWS - 1) * CELL_GAP + 6;
@@ -51,12 +55,17 @@ export interface Pt {
 }
 
 export function rackX(b: number) {
-  return RACK_X0 + b * RACK_PITCH;
+  return FLOOR_X0 + AISLE_W + b * RACK_PITCH;
+}
+
+// Center line of aisle i. Aisle b is left of rack b; aisle b + 1 is right of it.
+export function aisleX(i: number) {
+  return FLOOR_X0 + AISLE_W / 2 + i * RACK_PITCH;
 }
 
 export function cellPos(b: number, i: number): Pt {
   return {
-    x: rackX(b) + 6 + (i % RACK_COLS) * (CELL_W + CELL_GAP),
+    x: rackX(b) + 3 + (i % RACK_COLS) * (CELL_W + CELL_GAP),
     y: RACK_Y + RACK_HEAD + Math.floor(i / RACK_COLS) * (CELL_H + CELL_GAP),
   };
 }
@@ -69,8 +78,10 @@ export function robotCx(i: number) {
   return robotX(i) + ROBOT_W / 2;
 }
 
-// Walk to the aisle, along the aisle, then to the target.
+// In the same aisle, walk straight along it. Otherwise walk to the front
+// aisle, along it, then up or down to the target.
 function route(p: Pt, t: Pt): Pt[] {
+  if (Math.abs(p.x - t.x) < 0.5) return [{ x: t.x, y: t.y }];
   return [
     { x: p.x, y: AISLE_Y },
     { x: t.x, y: AISLE_Y },
@@ -137,12 +148,17 @@ export interface Robot {
   flash: number;
 }
 
+export interface Stop extends Pt {
+  item: number; // index into the order's brand items
+}
+
 export interface Picker {
   id: number;
   x: number;
   y: number;
   path: Pt[];
-  task: "idle" | "to_zone" | "pick" | "to_robot";
+  stops: Stop[];
+  task: "idle" | "to_item" | "pick" | "to_robot";
   order: number | null;
   robot: number | null;
   t: number;
@@ -211,6 +227,7 @@ const PICKERS = 16;
 const ARRIVAL_RATE = 0.175; // orders per second (630 per hour)
 const BACKLOG_CAP = 150;
 const FAULT_RATE = 0.01; // chance of a system fault per order
+const PICK_TIME = 6; // seconds to take one item from a container
 
 function newOrder(s: Sim, status: OrderStatus): Order {
   const brand = pickWeighted(s, BRANDS.map((b) => b.share));
@@ -274,7 +291,7 @@ export function createSim(pilots = DEFAULT_PILOTS): Sim {
   }
   for (let i = 0; i < 40; i++) s.backlog.push(newOrder(s, "queued").id);
   for (let i = 0; i < PICKERS; i++) {
-    s.pickers.push({ id: i + 1, x: 60 + i * (1080 / PICKERS), y: AISLE_Y, path: [], task: "idle", order: null, robot: null, t: 0 });
+    s.pickers.push({ id: i + 1, x: 60 + i * (1080 / PICKERS), y: AISLE_Y, path: [], stops: [], task: "idle", order: null, robot: null, t: 0 });
   }
   for (let i = 0; i < pilots; i++) s.pilots.push({ id: s.nextPilotId++, robot: null });
   s.nextArrival = -Math.log(1 - rand(s)) / ARRIVAL_RATE;
@@ -418,6 +435,18 @@ function chooseRobot(s: Sim, x: number): Robot | null {
   return best;
 }
 
+// One stop per item, in the aisle next to the item's container.
+function pickStops(p: Picker, o: Order): Stop[] {
+  const lane = ((p.id % 3) - 1) * 4; // spread pickers across the aisle
+  const stops = o.items.map((item) => ({
+    x: aisleX(o.brand + (item % RACK_COLS)) + lane,
+    y: cellPos(o.brand, item).y + CELL_H / 2,
+    item,
+  }));
+  // Nearer aisle first. In each aisle, start at the front.
+  return stops.sort((a, b) => Math.abs(a.x - p.x) - Math.abs(b.x - p.x) || b.y - a.y);
+}
+
 function stepPicker(s: Sim, p: Picker, dt: number) {
   switch (p.task) {
     case "idle": {
@@ -425,36 +454,43 @@ function stepPicker(s: Sim, p: Picker, dt: number) {
       const o = s.orders.get(s.backlog.shift()!)!;
       o.status = "picking";
       p.order = o.id;
-      p.path = route(p, { x: rackX(o.brand) + RACK_W / 2 + ((p.id % 5) - 2) * 9, y: AISLE_Y });
-      p.task = "to_zone";
+      p.stops = pickStops(p, o);
+      p.path = route(p, p.stops[0]);
+      p.task = "to_item";
       return;
     }
-    case "to_zone":
+    case "to_item":
       if (walk(p, dt)) {
         const o = s.orders.get(p.order!)!;
+        const i = p.stops[0].item;
+        s.flash.set(BRANDS[o.brand].items[i].sku, s.t);
+        // A stocker refills a slot when the last unit is picked.
+        if (--s.stock[o.brand][i] <= 0) s.stock[o.brand][i] = Math.round(between(s, 40, 200));
         p.task = "pick";
-        p.t = 5 + 6 * o.items.length;
-        for (const i of o.items) {
-          s.flash.set(BRANDS[o.brand].items[i].sku, s.t);
-          // A stocker refills a slot when the last unit is picked.
-          if (--s.stock[o.brand][i] <= 0) s.stock[o.brand][i] = Math.round(between(s, 40, 200));
-        }
+        p.t = PICK_TIME;
       }
       return;
-    case "pick":
+    case "pick": {
       p.t -= dt;
-      if (p.t <= 0) {
-        const r = chooseRobot(s, p.x);
-        if (!r) {
-          p.t = 2;
-          return;
-        }
-        r.incoming++;
-        p.robot = r.id;
-        p.path = route(p, { x: robotCx(r.id) + ((p.id % 3) - 1) * 6, y: DROP_Y });
-        p.task = "to_robot";
+      if (p.t > 0) return;
+      if (p.stops.length > 1) {
+        p.stops.shift();
+        p.path = route(p, p.stops[0]);
+        p.task = "to_item";
+        return;
       }
+      const r = chooseRobot(s, p.x);
+      if (!r) {
+        p.t = 2;
+        return;
+      }
+      p.stops = [];
+      r.incoming++;
+      p.robot = r.id;
+      p.path = route(p, { x: robotCx(r.id) + ((p.id % 3) - 1) * 6, y: DROP_Y });
+      p.task = "to_robot";
       return;
+    }
     case "to_robot":
       if (walk(p, dt)) {
         const r = s.robots[p.robot!];
