@@ -1,46 +1,64 @@
+import { memo, useState } from "react";
 import { BRANDS, CLASS_BASE, GRASP_CLASSES } from "@/sim/catalog";
 import {
+  AISLE_Y,
   BIN_W,
   BIN_X,
+  CELL_H,
+  CELL_W,
   CONVEYOR_H,
   CONVEYOR_X0,
   CONVEYOR_Y,
-  CROSS_AISLE_Y,
-  FRONT_AISLE_Y,
+  DROP_Y,
+  LEARN_Y,
+  PILOT_Y,
+  RACK_H,
+  RACK_HEAD,
+  RACK_W,
+  RACK_Y,
   ROBOT_H,
   ROBOT_W,
   ROBOT_Y,
   VIEW_H,
   VIEW_W,
-  ZONE_H,
-  ZONE_W,
+  cellPos,
   classAutonomy,
+  rackX,
   robotLabel,
   robotLight,
   robotName,
   robotX,
-  zoneRect,
   type Sim,
 } from "@/sim/engine";
+import { ICONS, type IconName } from "./icons";
 import { C, LIGHT_COLOR, pct } from "./tokens";
 
 const MONO = "var(--font-mono)";
 const SANS = "var(--font-sans)";
 
-const BIN_COLS = 5;
-const BIN_GAP = 4;
-const BIN_CELL_W = (ZONE_W - 16 - (BIN_COLS - 1) * BIN_GAP) / BIN_COLS;
-const BIN_CELL_H = 27;
+const ICON = 20;
 
 const TOTE_W = 30;
 const TOTE_H = 12;
 const TOTE_PITCH = 16;
 
-const BIN_TOP = 470;
+const BIN_TOP = ROBOT_Y - 106;
 const BIN_BOTTOM = CONVEYOR_Y + CONVEYOR_H;
 
-const PILOT_Y = 714;
-const LEARN_Y = 774;
+const TIP_W = 230;
+
+interface Tip {
+  x: number;
+  y: number;
+  title: string;
+  text: string;
+}
+
+// Icons never change, so they skip the 20 fps repaint.
+const ItemIcon = memo(function ItemIcon({ name, x, y }: { name: IconName; x: number; y: number }) {
+  const Icon = ICONS[name];
+  return <Icon x={x} y={y} size={ICON} color={C.w70} strokeWidth={1.75} />;
+});
 
 interface Props {
   sim: Sim;
@@ -72,47 +90,60 @@ function Label({
 
 export default function FloorView({ sim, selected, onSelect }: Props) {
   const s = sim;
+  const [tip, setTip] = useState<Tip | null>(null);
 
   return (
-    <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Warehouse floor and robot line">
+    <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="xMidYMin meet" role="img" aria-label="Warehouse floor and robot line">
       {/* ---------- Pick floor ---------- */}
       <Label x={32} y={26} fill={C.white}>
         01 · Pick floor
       </Label>
 
-      {[CROSS_AISLE_Y, FRONT_AISLE_Y].map((y) => (
-        <line key={y} x1={20} x2={1180} y1={y} y2={y} stroke={C.w12} strokeDasharray="2 6" />
-      ))}
+      <line x1={20} x2={1180} y1={AISLE_Y} y2={AISLE_Y} stroke={C.w12} strokeDasharray="2 6" />
 
       {BRANDS.map((b, z) => {
-        const r = zoneRect(z);
+        const rx = rackX(z);
         return (
           <g key={b.code}>
-            <rect x={r.x} y={r.y} width={ZONE_W} height={ZONE_H} fill={C.w04} stroke={C.w30} />
-            <text x={r.x + 8} y={r.y + 15} fontSize={10} fill={C.white} fontFamily={MONO} fontWeight={700}>
-              {b.code}
-            </text>
-            <text x={r.x + 36} y={r.y + 15} fontSize={10.5} fill={C.w70} fontFamily={SANS}>
-              {b.name}
-            </text>
+            <rect x={rx} y={RACK_Y} width={RACK_W} height={RACK_H} fill={C.w04} stroke={C.w30} />
+            <g
+              className="hint"
+              onMouseEnter={() => setTip({ x: rx, y: RACK_Y + RACK_HEAD - 2, title: b.name, text: b.about })}
+              onMouseLeave={() => setTip(null)}
+            >
+              <rect x={rx} y={RACK_Y} width={RACK_W} height={RACK_HEAD - 4} fill="transparent" />
+              <text x={rx + 8} y={RACK_Y + 14} fontSize={10} fill={C.white} fontFamily={MONO} fontWeight={700}>
+                {b.code}
+              </text>
+              <text x={rx + 8} y={RACK_Y + 27} fontSize={10} fill={C.w70} fontFamily={SANS}>
+                {b.name}
+              </text>
+            </g>
             {b.items.map((it, i) => {
-              const x = r.x + 8 + (i % BIN_COLS) * (BIN_CELL_W + BIN_GAP);
-              const y = r.y + 24 + Math.floor(i / BIN_COLS) * (BIN_CELL_H + BIN_GAP);
+              const { x, y } = cellPos(z, i);
               const at = s.flash.get(it.sku);
               const age = at === undefined ? 99 : s.t - at;
-              const glow = age < 6 ? 0.55 * (1 - age / 6) : 0;
+              const glow = age < 6 ? 0.3 * (1 - age / 6) : 0;
               return (
-                <rect
+                <g
                   key={it.sku}
-                  x={x}
-                  y={y}
-                  width={BIN_CELL_W}
-                  height={BIN_CELL_H}
-                  fill={glow > 0 ? `rgba(255,255,255,${glow.toFixed(3)})` : "transparent"}
-                  stroke={C.w12}
+                  className="hint"
+                  onMouseEnter={() => setTip({ x, y: y + CELL_H + 2, title: it.name, text: `${it.lb} lb` })}
+                  onMouseLeave={() => setTip(null)}
                 >
-                  <title>{`${it.name} · ${it.lb} lb`}</title>
-                </rect>
+                  <rect
+                    x={x}
+                    y={y}
+                    width={CELL_W}
+                    height={CELL_H}
+                    fill={glow > 0 ? `rgba(255,255,255,${glow.toFixed(3)})` : "transparent"}
+                    stroke={C.w12}
+                  />
+                  <ItemIcon name={it.icon} x={x + (CELL_W - ICON) / 2} y={y + 8} />
+                  <text x={x + CELL_W / 2} y={y + 42} fontSize={9.5} fill={C.w50} fontFamily={MONO} textAnchor="middle" className="metric">
+                    ×{s.stock[z][i]}
+                  </text>
+                </g>
               );
             })}
           </g>
@@ -120,7 +151,7 @@ export default function FloorView({ sim, selected, onSelect }: Props) {
       })}
 
       {/* ---------- Pack line ---------- */}
-      <Label x={32} y={440} fill={C.white}>
+      <Label x={32} y={AISLE_Y + 32} fill={C.white}>
         02 · Pack line
       </Label>
 
@@ -131,7 +162,7 @@ export default function FloorView({ sim, selected, onSelect }: Props) {
         const flashAge = s.t - r.flash;
         return (
           <g key={r.id} className="robot-hit" onClick={() => onSelect(r.id)}>
-            <rect x={x - 4} y={452} width={ROBOT_W + 8} height={ROBOT_Y + ROBOT_H + 24 - 452} fill="transparent" />
+            <rect x={x - 4} y={DROP_Y} width={ROBOT_W + 8} height={ROBOT_Y + ROBOT_H + 24 - DROP_Y} fill="transparent" />
             {r.queue.map((oid, k) => (
               <rect
                 key={oid}
@@ -254,6 +285,15 @@ export default function FloorView({ sim, selected, onSelect }: Props) {
           {p.task === "to_robot" && <rect x={p.x + 5} y={p.y - 9} width={10} height={6} fill={C.charcoal} stroke={C.w70} />}
         </g>
       ))}
+
+      {tip && (
+        <foreignObject x={Math.min(tip.x, VIEW_W - TIP_W - 8)} y={tip.y} width={TIP_W} height={120} pointerEvents="none">
+          <div className="tip">
+            <div className="label">{tip.title}</div>
+            <div className="tip-text">{tip.text}</div>
+          </div>
+        </foreignObject>
+      )}
     </svg>
   );
 }

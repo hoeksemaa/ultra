@@ -7,30 +7,39 @@ import { BRANDS, CLASS_BASE, GRASP_CLASSES, type GraspClass, type Item } from ".
 // ---------- Layout (SVG units; 10 units = 1 m) ----------
 
 export const VIEW_W = 1200;
-export const VIEW_H = 840;
 
-export const ZONE_X0 = 32;
-export const ZONE_W = 208;
-export const ZONE_H = 150;
-export const ZONE_GAP = 24;
-export const ZONE_ROW_Y = [44, 234];
-export const CROSS_AISLE_Y = 214;
-export const FRONT_AISLE_Y = 404;
+// Pick floor: one row of 10 racks, one per brand, with an aisle in front.
+export const RACK_X0 = 32;
+export const RACK_PITCH = 113.6;
+export const RACK_W = 106;
+export const RACK_Y = 40;
+export const RACK_HEAD = 34;
+export const RACK_COLS = 2;
+export const RACK_ROWS = 5;
+export const CELL_W = 45;
+export const CELL_H = 50;
+export const CELL_GAP = 4;
+export const RACK_H = RACK_HEAD + RACK_ROWS * CELL_H + (RACK_ROWS - 1) * CELL_GAP + 6;
+export const AISLE_Y = RACK_Y + RACK_H + 20;
 
 export const ROBOT_COUNT = 20;
 export const ROBOT_X0 = 32;
 export const ROBOT_PITCH = 50.4;
 export const ROBOT_W = 40;
-export const ROBOT_Y = 576;
+export const DROP_Y = AISLE_Y + 46;
+export const ROBOT_Y = DROP_Y + 112;
 export const ROBOT_H = 44;
-export const DROP_Y = 452;
 export const QUEUE_CAP = 6;
 
 export const CONVEYOR_X0 = 24;
-export const CONVEYOR_Y = 656;
+export const CONVEYOR_Y = ROBOT_Y + 76;
 export const CONVEYOR_H = 22;
 export const BIN_X = 1052;
 export const BIN_W = 116;
+
+export const PILOT_Y = CONVEYOR_Y + 60;
+export const LEARN_Y = PILOT_Y + 64;
+export const VIEW_H = LEARN_Y + 68;
 
 const WALK_SPEED = 15; // units/s (1.5 m/s)
 const CONVEYOR_SPEED = 8; // units/s (0.8 m/s)
@@ -41,10 +50,15 @@ export interface Pt {
   y: number;
 }
 
-export function zoneRect(z: number) {
-  const row = z < 5 ? 0 : 1;
-  const col = z % 5;
-  return { x: ZONE_X0 + col * (ZONE_W + ZONE_GAP), y: ZONE_ROW_Y[row], row };
+export function rackX(b: number) {
+  return RACK_X0 + b * RACK_PITCH;
+}
+
+export function cellPos(b: number, i: number): Pt {
+  return {
+    x: rackX(b) + 6 + (i % RACK_COLS) * (CELL_W + CELL_GAP),
+    y: RACK_Y + RACK_HEAD + Math.floor(i / RACK_COLS) * (CELL_H + CELL_GAP),
+  };
 }
 
 export function robotX(i: number) {
@@ -55,48 +69,13 @@ export function robotCx(i: number) {
   return robotX(i) + ROBOT_W / 2;
 }
 
-function zonePick(z: number, jitter: number): Pt {
-  const r = zoneRect(z);
-  return {
-    x: r.x + ZONE_W / 2 + jitter,
-    y: r.row === 0 ? CROSS_AISLE_Y : FRONT_AISLE_Y,
-  };
-}
-
-function gapX(x: number) {
-  const pitch = ZONE_W + ZONE_GAP;
-  const c = Math.max(0, Math.min(5, Math.round((x - ZONE_X0 + ZONE_GAP / 2) / pitch)));
-  return ZONE_X0 + c * pitch - ZONE_GAP / 2;
-}
-
-type Level = "A" | "B" | "C";
-function level(p: Pt): Level {
-  if (p.y <= CROSS_AISLE_Y + 1) return "A";
-  if (p.y <= FRONT_AISLE_Y + 1) return "B";
-  return "C";
-}
-
-// Walk along the aisles: cross aisle (A), front aisle (B), robot line (C).
+// Walk to the aisle, along the aisle, then to the target.
 function route(p: Pt, t: Pt): Pt[] {
-  const lp = level(p);
-  const lt = level(t);
-  if (lp === "A" && lt === "A") return [{ x: t.x, y: t.y }];
-  const out: Pt[] = [];
-  if (lp === "A") {
-    const gx = gapX(p.x);
-    out.push({ x: gx, y: CROSS_AISLE_Y }, { x: gx, y: FRONT_AISLE_Y });
-  } else if (lp === "C") {
-    out.push({ x: p.x, y: FRONT_AISLE_Y });
-  }
-  if (lt === "A") {
-    const gx = gapX(t.x);
-    out.push({ x: gx, y: FRONT_AISLE_Y }, { x: gx, y: CROSS_AISLE_Y }, { x: t.x, y: CROSS_AISLE_Y });
-  } else if (lt === "B") {
-    out.push({ x: t.x, y: FRONT_AISLE_Y });
-  } else {
-    out.push({ x: t.x, y: FRONT_AISLE_Y }, { x: t.x, y: t.y });
-  }
-  return out;
+  return [
+    { x: p.x, y: AISLE_Y },
+    { x: t.x, y: AISLE_Y },
+    { x: t.x, y: t.y },
+  ];
 }
 
 // Move along a path. Returns true when the path is done.
@@ -197,6 +176,7 @@ export interface Sim {
   pilotRate: Record<GraspClass, number>; // chance that an item needs a pilot
   recent: boolean[]; // last 100 packed orders: true = no pilot
   packTimes: number[]; // sim times of packed orders, last hour
+  stock: number[][]; // units left, by brand and item
   flash: Map<string, number>; // sku -> sim time of last pick
 }
 
@@ -267,8 +247,11 @@ export function createSim(pilots = DEFAULT_PILOTS): Sim {
     pilotRate,
     recent: [],
     packTimes: [],
+    stock: [],
     flash: new Map(),
   };
+  // Stock levels spread from a few units to a few hundred.
+  s.stock = BRANDS.map((b) => b.items.map(() => Math.round(Math.exp(between(s, Math.log(2), Math.log(240))))));
   for (let i = 0; i < ROBOT_COUNT; i++) {
     const r: Robot = {
       id: i,
@@ -291,7 +274,7 @@ export function createSim(pilots = DEFAULT_PILOTS): Sim {
   }
   for (let i = 0; i < 40; i++) s.backlog.push(newOrder(s, "queued").id);
   for (let i = 0; i < PICKERS; i++) {
-    s.pickers.push({ id: i + 1, x: 60 + i * (980 / PICKERS), y: FRONT_AISLE_Y, path: [], task: "idle", order: null, robot: null, t: 0 });
+    s.pickers.push({ id: i + 1, x: 60 + i * (1080 / PICKERS), y: AISLE_Y, path: [], task: "idle", order: null, robot: null, t: 0 });
   }
   for (let i = 0; i < pilots; i++) s.pilots.push({ id: s.nextPilotId++, robot: null });
   s.nextArrival = -Math.log(1 - rand(s)) / ARRIVAL_RATE;
@@ -442,7 +425,7 @@ function stepPicker(s: Sim, p: Picker, dt: number) {
       const o = s.orders.get(s.backlog.shift()!)!;
       o.status = "picking";
       p.order = o.id;
-      p.path = route(p, zonePick(o.brand, ((p.id % 5) - 2) * 9));
+      p.path = route(p, { x: rackX(o.brand) + RACK_W / 2 + ((p.id % 5) - 2) * 9, y: AISLE_Y });
       p.task = "to_zone";
       return;
     }
@@ -451,7 +434,11 @@ function stepPicker(s: Sim, p: Picker, dt: number) {
         const o = s.orders.get(p.order!)!;
         p.task = "pick";
         p.t = 5 + 6 * o.items.length;
-        for (const i of o.items) s.flash.set(BRANDS[o.brand].items[i].sku, s.t);
+        for (const i of o.items) {
+          s.flash.set(BRANDS[o.brand].items[i].sku, s.t);
+          // A stocker refills a slot when the last unit is picked.
+          if (--s.stock[o.brand][i] <= 0) s.stock[o.brand][i] = Math.round(between(s, 40, 200));
+        }
       }
       return;
     case "pick":

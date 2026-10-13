@@ -333,6 +333,23 @@ button {
 }
 
 .robot-hit { cursor: pointer; }
+.hint { cursor: help; }
+
+/* Hover popup on the pick floor */
+.tip {
+  display: inline-block;
+  max-width: 230px;
+  padding: 8px 10px;
+  background: var(--charcoal);
+  border: 1px solid var(--white-70);
+  color: var(--white);
+}
+.tip-text {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--white-70);
+}
 
 /* Narrow screens: stack the panels. */
 @media (max-width: 900px) {
