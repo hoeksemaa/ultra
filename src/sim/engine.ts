@@ -46,8 +46,7 @@ export const LEARN_Y = PILOT_Y + 64;
 export const VIEW_H = LEARN_Y + 68;
 
 const WALK_SPEED = 15; // units/s (1.5 m/s)
-const CONVEYOR_SPEED = 8; // units/s (0.8 m/s)
-const MAILER_HOLD = 1.5; // seconds a new mailer waits at the robot
+export const CONVEYOR_SPEED = 8; // units/s (0.8 m/s)
 export const STEP = 0.1; // fixed sim step, seconds
 
 export interface Pt {
@@ -176,7 +175,6 @@ export interface Pilot {
 export interface Mailer {
   order: number;
   x: number;
-  hold: number; // seconds left before the belt moves it (it drops onto the belt first)
 }
 
 export interface Sim {
@@ -393,7 +391,7 @@ function nextStep(s: Sim, r: Robot) {
   }
   // All items are packed: the tote leaves and the mailer ships.
   o.status = "conveyor";
-  s.mailers.push({ order: o.id, x: robotCx(r.id) - 7, hold: MAILER_HOLD });
+  s.mailers.push({ order: o.id, x: robotCx(r.id) - 7 });
   s.recent.push(o.assists === 0);
   if (s.recent.length > 100) s.recent.shift();
   s.packTimes.push(s.t);
@@ -424,7 +422,7 @@ function finishPilot(s: Sim, r: Robot) {
   // Each pilot episode adds training data. The shared policy gets a little
   // better at this item class on every robot in the fleet.
   const cls = currentItem(s, r)!.cls;
-  s.pilotRate[cls] = Math.max(0.01, s.pilotRate[cls] * 0.975);
+  s.pilotRate[cls] = Math.max(0.005, s.pilotRate[cls] * 0.975);
   s.orders.get(r.order!)!.assists++;
   const p = s.pilots.find((x) => x.robot === r.id)!;
   p.robot = null;
@@ -553,10 +551,6 @@ export function step(s: Sim, dt: number) {
   // Conveyor to the outbound bin.
   for (let i = s.mailers.length - 1; i >= 0; i--) {
     const m = s.mailers[i];
-    if (m.hold > 0) {
-      m.hold -= dt;
-      continue;
-    }
     m.x += CONVEYOR_SPEED * dt;
     // The bin covers the mailer before it leaves the belt.
     if (m.x >= BIN_X) {

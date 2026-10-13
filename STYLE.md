@@ -101,7 +101,7 @@ Scale for an app screen: H1 40 · H2 24 · H3 18 · Body 16 · Small 14 · Label
 - **Object permanence.** Totes, cubes, and mailers slide between places (ease-out, 0.1 s time constant). Nothing appears or vanishes in place:
   - A new tote slides down from the picker drop point into its queue slot.
   - A packed cube slides from the tote into the robot's pack area.
-  - The mailer forms in the pack area, slides out onto the belt, and slides under the outbound bin.
+  - The mailer forms in the pack area. The robot sets it straight down on the belt (ease in and out, 0.35 s). The belt carries it at belt speed under the outbound bin. It never moves sideways while it drops, and it never catches up.
   - An empty tote slides down into the robot's tote return, behind the robot body.
 - Surfaces that things slide behind (robot bodies, the outbound bin) are opaque.
 
