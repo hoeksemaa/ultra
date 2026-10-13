@@ -19,7 +19,6 @@ export const LIGHT_COLOR = {
   ok: C.ok,
   watch: C.watch,
   fault: C.fault,
-  idle: C.idle,
 } as const;
 
 export function pct(x: number, digits = 1) {

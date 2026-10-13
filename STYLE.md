@@ -31,14 +31,14 @@ Feel: industrial, pragmatic, clear. Square corners, hairline grids, big tight he
 |---|---|---|
 | `--ok` | `#22C55E` | Good. No action. |
 | `--watch` | `#FACC15` | Not all good, not a problem yet. The robot recovers alone. Monitor it. |
-| `--fault` | `#F43F5E` | Bad. A human must act: a pilot or a floor tech. |
+| `--fault` | `#F43F5E` | Bad. A human must act: a pilot or an operator. |
 | `--idle` | `#FFFFFF80` | No state, or paused. |
 
 ### One color, one meaning
 - **Orange means "look here" or "act here".** Use it for the primary button, the selected robot or row, focus, eyebrow labels, and the active list number. Orange is never a status.
 - **Green, yellow, and red are status only.** Never use them for buttons, links, or decoration.
 - **No brand colors.** The 10 brands get mono codes (`BRB`, `BLK`), not colors.
-- Always show status as a dot plus a label (`● PACKING`, `● REGRASP`, `● PILOT NEEDED`). Never use color alone. Red and orange are close in hue (350° vs 19°), and some viewers cannot tell them apart.
+- Always show status as a dot plus a label (`● PACKING`, `● REGRASP`, `● NEED PILOT`). Never use color alone. Red and orange are close in hue (350° vs 19°), and some viewers cannot tell them apart.
 - Put status colors on charcoal only. All four pass 4.5:1 there (green 7.6, yellow 11.2, red 4.7). On `--paper` they fail.
 - Text on orange: use charcoal (5.2:1). Use white on orange only for text that is 18px or larger and bold.
 
@@ -46,17 +46,22 @@ Feel: industrial, pragmatic, clear. Square corners, hairline grids, big tight he
 
 | Robot state | Status | Label |
 |---|---|---|
-| Scanning tote, packing, sealing, placing on conveyor | ok | `● SCANNING`, `● PACKING`, `● SEALING` |
+| Packing (scan tote, pack items, seal mailer) | ok | `● PACKING` |
 | Grasp failed, robot tries again alone | watch | `● REGRASP` |
-| Infeed queue empty | watch | `● NO TOTE` |
-| Grasp failed, waiting for a remote pilot | fault | `● PILOT NEEDED` |
+| No tote in the infeed queue | watch | `● NO TOTE` |
+| Grasp failed, waiting for a remote pilot | fault | `● NEED PILOT` |
 | Remote pilot in control | fault | `● PILOT P2` |
-| System fault, waiting for or with a floor tech | fault | `● FAULT`, `● TECH FIXING` |
-| Simulation paused | idle | `● PAUSED` |
+| System fault, an operator must fix it | fault | `● FAULT` |
 
+- Use one label for each state, in every view.
 - The selected robot gets an orange outline in every view.
-- The action queue lists red robots first, oldest first, then yellow robots.
+- The action queue lists red robots first, then yellow robots, oldest first.
 - A recommendation that the operator can act on gets one orange button (`+1 PILOT`).
+
+## Keep it quiet
+- Show a number only when the operator acts on it or tracks it. The console has 3 KPIs: `ORDERS / HR`, `AUTONOMY`, `PILOTS BUSY`.
+- Do not put captions or subtitles under section headings. The section name is enough.
+- Put item names and weights in hover tooltips, not on the map.
 
 ## Type
 
@@ -89,7 +94,7 @@ Scale for an app screen: H1 40 · H2 24 · H3 18 · Body 16 · Small 14 · Label
 
 ## Copy voice
 - Short, plain, declarative. Ultra: "Industrial AI robots that work." "Roll it up, plug it in, turn it on."
-- Labels name the thing: `ORDERS / HR`, `AUTONOMY`, `PILOT ASSISTS`. No marketing words in the UI.
+- Labels name the thing: `ORDERS / HR`, `AUTONOMY`, `PILOTS BUSY`. No marketing words in the UI.
 
 ## CSS tokens
 
