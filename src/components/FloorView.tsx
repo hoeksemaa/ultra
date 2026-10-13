@@ -246,20 +246,13 @@ export default function FloorView({ sim, view, selected, selectedOrder, onSelect
         if (lx >= BIN_X) return null;
         return <line key={i} x1={lx} x2={lx} y1={CONVEYOR_Y + 2} y2={CONVEYOR_Y + CONVEYOR_H - 2} stroke={C.w12} />;
       })}
-      {[...view.mailers.values()].map((m) =>
-        m.stage === "pack" ? null : (
-          <rect
-            key={m.order}
-            x={m.x}
-            y={m.y}
-            width={MAILER_W}
-            height={MAILER_H}
-            fill={C.paper}
-            stroke={m.order === so ? C.orange : "none"}
-            strokeWidth={2}
-          />
-        ),
-      )}
+      {/* The selected order's mailer is solid orange and drawn last, on top. */}
+      {[...view.mailers.values()]
+        .filter((m) => m.stage !== "pack")
+        .sort((a, b) => Number(a.order === so) - Number(b.order === so))
+        .map((m) => (
+          <rect key={m.order} x={m.x} y={m.y} width={MAILER_W} height={MAILER_H} fill={m.order === so ? C.orange : C.paper} />
+        ))}
 
       {/* Outbound bin */}
       <rect x={BIN_X} y={BIN_TOP} width={BIN_W} height={BIN_BOTTOM - BIN_TOP} fill={C.panel} stroke={C.w30} />
