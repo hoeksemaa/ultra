@@ -668,11 +668,12 @@ export function fmtDur(sec: number): string {
   return `${m}:${String(ss).padStart(2, "0")}`;
 }
 
+// 12-hour clock, for example "6:00 AM". The shift starts at 6:00 AM.
 export function fmtClock(sec: number): string {
-  const t = Math.floor(6 * 3600 + sec); // shift starts 06:00
+  const t = Math.floor(6 * 3600 + sec);
   const h = Math.floor(t / 3600) % 24;
   const m = Math.floor((t % 3600) / 60);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 }
 
 export function robotName(i: number) {
