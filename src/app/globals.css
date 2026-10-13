@@ -321,11 +321,21 @@ button {
 .row.ord { grid-template-columns: 52px 38px 44px minmax(0, 1fr) 40px; }
 .row .items { display: flex; gap: 4px; }
 .row .items svg { display: block; flex: none; }
-.row.rob { grid-template-columns: 30px minmax(0, 1fr) 14px; cursor: pointer; }
-.row.rob svg { display: block; }
-.row.rob:hover { background: var(--white-04); }
 .row.head { color: var(--white-50); font-weight: 600; }
 .st { display: flex; align-items: center; gap: 6px; }
+
+/* Autonomy by item type */
+.learn { padding: 6px 12px 8px; }
+.learn-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+}
+.learn-row .metric { text-align: right; font-size: 12px; }
+.learn .bar { height: 6px; background: var(--white-12); }
+.learn .bar span { display: block; height: 100%; background: var(--white); }
 
 /* SVG text */
 .svg-label {

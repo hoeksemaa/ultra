@@ -42,8 +42,7 @@ export const BIN_X = 1052;
 export const BIN_W = 116;
 
 export const PILOT_Y = CONVEYOR_Y + 60;
-export const LEARN_Y = PILOT_Y + 64;
-export const VIEW_H = LEARN_Y + 68;
+export const VIEW_H = PILOT_Y + 48;
 
 const WALK_SPEED = 15; // units/s (1.5 m/s)
 export const CONVEYOR_SPEED = 8; // units/s (0.8 m/s)

@@ -1,19 +1,18 @@
-import { BRANDS } from "@/sim/catalog";
+import { BRANDS, CLASS_BASE, GRASP_CLASSES } from "@/sim/catalog";
 import {
   actions,
   autonomy,
+  classAutonomy,
   fmtDur,
   ordersPerHour,
   robotLabel,
   robotLight,
   robotName,
-  robotProgress,
   type Order,
   type Sim,
 } from "@/sim/engine";
 import { ICONS } from "./icons";
-import Ring from "./Ring";
-import { LIGHT_COLOR, pct } from "./tokens";
+import { pct } from "./tokens";
 
 interface Props {
   sim: Sim;
@@ -22,13 +21,14 @@ interface Props {
   onAddPilot: () => void;
 }
 
-function Head({ n, title }: { n: string; title: string }) {
+function Head({ n, title, right }: { n: string; title: string; right?: string }) {
   return (
     <div className="panel-hd">
       <span className="label">
         <span className="num">{n}</span>
         {title}
       </span>
+      {right && <span className="label faint">{right}</span>}
     </div>
   );
 }
@@ -135,21 +135,18 @@ export default function SidePanel({ sim, selected, onSelect, onAddPilot }: Props
         </div>
       </section>
 
-      <section className="panel" style={{ flex: "1 1 0" }}>
-        <Head n="04" title="Robots" />
-        <div className="panel-body">
-          {s.robots.map((r) => {
-            const light = robotLight(r);
+      <section className="panel" style={{ flex: "none" }}>
+        <Head n="04" title="Autonomy by item type" right="Learns from pilots" />
+        <div className="learn">
+          {GRASP_CLASSES.map((c) => {
+            const a = classAutonomy(s, c);
             return (
-              <div key={r.id} className={`row rob ${selected === r.id ? "sel" : ""}`} onClick={() => onSelect(r.id)}>
-                <span style={selected === r.id ? { color: "var(--orange)" } : undefined}>{robotName(r.id)}</span>
-                <span className="st">
-                  <span className={`dot ${light}`} />
-                  <span className={`t-${light}`}>{robotLabel(r)}</span>
+              <div key={c} className="learn-row">
+                <span className="label dim">{CLASS_BASE[c].label}</span>
+                <span className="bar">
+                  <span style={{ width: `${a * 100}%` }} />
                 </span>
-                <svg width={14} height={14} viewBox="0 0 14 14" aria-hidden>
-                  <Ring cx={7} cy={7} r={5} width={2} value={robotProgress(r)} color={LIGHT_COLOR[light]} />
-                </svg>
+                <span className="metric">{pct(a, 0)}</span>
               </div>
             );
           })}
