@@ -117,11 +117,15 @@ export default function SidePanel({ sim, selected, onSelect, onAddPilot }: Props
                 <span>#{o.id}</span>
                 <span>{BRANDS[o.brand].code}</span>
                 <span className="items" title={o.items.map((i) => BRANDS[o.brand].items[i].name).join(" · ")}>
-                  {o.items.map((i, k) => {
-                    const Icon = ICONS[BRANDS[o.brand].items[i].icon];
-                    // Packed items fade out.
-                    return <Icon key={i} size={12} strokeWidth={2} color={k < o.packed ? "var(--white-30)" : "var(--white)"} />;
-                  })}
+                  {/* Same order as the cubes in the tote: the first item packed is on
+                      the right, so packed items fade from right to left. */}
+                  {o.items
+                    .map((i, k) => ({ i, packed: k < o.packed }))
+                    .reverse()
+                    .map(({ i, packed }) => {
+                      const Icon = ICONS[BRANDS[o.brand].items[i].icon];
+                      return <Icon key={i} size={12} strokeWidth={2} color={packed ? "var(--white-30)" : "var(--white)"} />;
+                    })}
                 </span>
                 <span className={light === "fault" ? "t-fault" : o.status === "queued" ? "faint" : undefined}>{status}</span>
                 <span className="dim">{r && o.status !== "conveyor" ? robotName(r.id) : ""}</span>

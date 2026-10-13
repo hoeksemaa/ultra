@@ -3,21 +3,33 @@
 import { useEffect, useRef, useState } from "react";
 import { STEP, createSim, fmtClock, setPilotTarget, step, type Sim } from "@/sim/engine";
 import FloorView from "./FloorView";
+import { createView, updateView, type View } from "./motion";
 import SidePanel from "./SidePanel";
 
 const SPEEDS = [1, 10, 60];
 
+// The sim and its view always change together, so they live in one state.
+interface World {
+  sim: Sim;
+  view: View;
+}
+
+function newWorld(): World {
+  return { sim: createSim(), view: createView() };
+}
+
 export default function FleetConsole() {
-  const [sim, setSim] = useState<Sim>(() => createSim());
+  const [world, setWorld] = useState<World>(newWorld);
+  const { sim, view } = world;
   const [, setFrame] = useState(0);
   const [speed, setSpeed] = useState(10);
   const [paused, setPaused] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
-  const live = useRef({ sim, speed, paused });
+  const live = useRef({ world, speed, paused });
 
   useEffect(() => {
-    live.current = { sim, speed, paused };
-  }, [sim, speed, paused]);
+    live.current = { world, speed, paused };
+  }, [world, speed, paused]);
 
   // Fixed-step loop: the same seed gives the same shift on every run.
   useEffect(() => {
@@ -25,6 +37,7 @@ export default function FleetConsole() {
     let last = performance.now();
     let acc = 0;
     let lastPaint = 0;
+    let wasMoving = false;
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
@@ -32,14 +45,17 @@ export default function FleetConsole() {
       if (!c.paused) {
         acc += dt * c.speed;
         while (acc >= STEP) {
-          step(c.sim, STEP);
+          step(c.world.sim, STEP);
           acc -= STEP;
         }
-        if (now - lastPaint >= 50) {
-          lastPaint = now;
-          setFrame((f) => f + 1);
-        }
       }
+      // Slides finish even while the sim is paused.
+      const moving = updateView(c.world.view, c.world.sim, dt);
+      if ((!c.paused || moving || wasMoving) && now - lastPaint >= 33) {
+        lastPaint = now;
+        setFrame((f) => f + 1);
+      }
+      wasMoving = moving;
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -69,7 +85,9 @@ export default function FleetConsole() {
             <button
               className="chip"
               onClick={() => {
-                setSim(createSim());
+                const w = newWorld();
+                live.current = { ...live.current, world: w };
+                setWorld(w);
                 setSelected(null);
               }}
             >
@@ -98,7 +116,7 @@ export default function FleetConsole() {
 
       <main className="main">
         <div className="floor">
-          <FloorView sim={sim} selected={selected} onSelect={onSelect} />
+          <FloorView sim={sim} view={view} selected={selected} onSelect={onSelect} />
         </div>
         <SidePanel sim={sim} selected={selected} onSelect={onSelect} onAddPilot={() => changePilots(1)} />
       </main>
