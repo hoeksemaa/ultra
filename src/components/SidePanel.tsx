@@ -17,7 +17,9 @@ import { pct } from "./tokens";
 interface Props {
   sim: Sim;
   selected: number | null;
+  selectedOrder: number | null;
   onSelect: (robot: number) => void;
+  onSelectOrder: (order: number) => void;
   onAddPilot: () => void;
 }
 
@@ -50,7 +52,7 @@ const ORDER_STATUS: Record<Order["status"], string> = {
   conveyor: "SHIPPING",
 };
 
-export default function SidePanel({ sim, selected, onSelect, onAddPilot }: Props) {
+export default function SidePanel({ sim, selected, selectedOrder, onSelect, onSelectOrder, onAddPilot }: Props) {
   const s = sim;
   const perHour = ordersPerHour(s);
   const auto = autonomy(s);
@@ -113,7 +115,7 @@ export default function SidePanel({ sim, selected, onSelect, onAddPilot }: Props
             const light = o.status === "packing" && r ? robotLight(r) : null;
             const status = light === "fault" ? robotLabel(r!) : ORDER_STATUS[o.status];
             return (
-              <div key={o.id} className={`row ord ${r && selected === r.id && o.status !== "conveyor" ? "sel" : ""}`}>
+              <div key={o.id} className={`row ord pick ${selectedOrder === o.id ? "sel" : ""}`} onClick={() => onSelectOrder(o.id)}>
                 <span>#{o.id}</span>
                 <span>{BRANDS[o.brand].code}</span>
                 <span className="items" title={o.items.map((i) => BRANDS[o.brand].items[i].name).join(" · ")}>
@@ -124,7 +126,7 @@ export default function SidePanel({ sim, selected, onSelect, onAddPilot }: Props
                     .reverse()
                     .map(({ i, packed }) => {
                       const Icon = ICONS[BRANDS[o.brand].items[i].icon];
-                      return <Icon key={i} size={12} strokeWidth={2} color={packed ? "var(--white-30)" : "var(--white)"} />;
+                      return <Icon key={i} size={12} strokeWidth={2} className={packed ? "packed" : undefined} />;
                     })}
                 </span>
                 <span className={light === "fault" ? "t-fault" : o.status === "queued" ? "faint" : undefined}>{status}</span>

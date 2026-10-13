@@ -24,7 +24,8 @@ export default function FleetConsole() {
   const [, setFrame] = useState(0);
   const [speed, setSpeed] = useState(10);
   const [paused, setPaused] = useState(false);
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(null); // robot
+  const [selectedOrder, setSelectedOrder] = useState<number | null>(null);
   const live = useRef({ world, speed, paused });
 
   useEffect(() => {
@@ -67,7 +68,15 @@ export default function FleetConsole() {
     setFrame((f) => f + 1);
   };
 
-  const onSelect = (r: number) => setSelected((cur) => (cur === r ? null : r));
+  // One selection at a time: a robot or an order. A second click clears it.
+  const onSelect = (r: number) => {
+    setSelectedOrder(null);
+    setSelected((cur) => (cur === r ? null : r));
+  };
+  const onSelectOrder = (id: number) => {
+    setSelected(null);
+    setSelectedOrder((cur) => (cur === id ? null : id));
+  };
 
   return (
     <div className="app">
@@ -89,6 +98,7 @@ export default function FleetConsole() {
                 live.current = { ...live.current, world: w };
                 setWorld(w);
                 setSelected(null);
+                setSelectedOrder(null);
               }}
             >
               Reset
@@ -116,9 +126,16 @@ export default function FleetConsole() {
 
       <main className="main">
         <div className="floor">
-          <FloorView sim={sim} view={view} selected={selected} onSelect={onSelect} />
+          <FloorView sim={sim} view={view} selected={selected} selectedOrder={selectedOrder} onSelect={onSelect} />
         </div>
-        <SidePanel sim={sim} selected={selected} onSelect={onSelect} onAddPilot={() => changePilots(1)} />
+        <SidePanel
+          sim={sim}
+          selected={selected}
+          selectedOrder={selectedOrder}
+          onSelect={onSelect}
+          onSelectOrder={onSelectOrder}
+          onAddPilot={() => changePilots(1)}
+        />
       </main>
 
       <footer className="ftr label">
