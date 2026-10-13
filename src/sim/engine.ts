@@ -31,7 +31,7 @@ export const ROBOT_X0 = 32;
 export const ROBOT_PITCH = 50.4;
 export const ROBOT_W = 40;
 export const DROP_Y = AISLE_Y + 46;
-export const ROBOT_Y = DROP_Y + 112;
+export const ROBOT_Y = DROP_Y + 128;
 export const ROBOT_H = 52;
 export const QUEUE_CAP = 6;
 
@@ -122,7 +122,8 @@ export type OrderStatus = "queued" | "picking" | "staged" | "packing" | "conveyo
 export interface Order {
   id: number;
   brand: number;
-  items: number[];
+  items: number[]; // indexes into the brand's items, all different
+  packed: number; // items already in the mailer
   status: OrderStatus;
   robot: number | null;
   assists: number;
@@ -146,8 +147,8 @@ export interface Robot {
   since: number;
   pilot: number | null;
   flash: number;
-  done: number; // seconds of the order's own work finished
-  total: number; // seconds of the order's own work planned
+  stepDur: number; // full length of the current step
+  done: number; // ring weight finished on the current item
 }
 
 export interface Stop extends Pt {
@@ -231,6 +232,8 @@ const BACKLOG_CAP = 150;
 const FAULT_RATE = 0.01; // chance of a system fault per order
 const PICK_TIME = 6; // seconds to take one item from a container
 
+// A customer orders from one shop, so all items in an order come from one
+// brand: 1 to 3 different items.
 function newOrder(s: Sim, status: OrderStatus): Order {
   const brand = pickWeighted(s, BRANDS.map((b) => b.share));
   const r = rand(s);
@@ -240,7 +243,7 @@ function newOrder(s: Sim, status: OrderStatus): Order {
     const i = Math.floor(rand(s) * BRANDS[brand].items.length);
     if (!items.includes(i)) items.push(i);
   }
-  const o: Order = { id: s.nextId++, brand, items, status, robot: null, assists: 0 };
+  const o: Order = { id: s.nextId++, brand, items, packed: 0, status, robot: null, assists: 0 };
   s.orders.set(o.id, o);
   return o;
 }
@@ -283,8 +286,8 @@ export function createSim(pilots = DEFAULT_PILOTS): Sim {
       since: 0,
       pilot: null,
       flash: -1e9,
+      stepDur: 0,
       done: 0,
-      total: 0,
     };
     for (let k = 0; k < 2; k++) {
       const o = newOrder(s, "staged");
@@ -331,7 +334,9 @@ function planOrder(s: Sim, o: Order): Step[] {
     const d = CLASS_BASE[cls].time * between(s, 0.85, 1.15);
     const x = rand(s);
     if (x < s.pilotRate[cls]) {
-      steps.push({ phase: "pack", dur: d / 2, item: i }, { phase: "pilot_wait", dur: 0, item: i });
+      // The wait step holds the expected pilot time; the ring uses it as a weight.
+      const pilot = 15 + CLASS_BASE[cls].time * 1.9;
+      steps.push({ phase: "pack", dur: d / 2, item: i }, { phase: "pilot_wait", dur: pilot, item: i });
     } else if (x < s.pilotRate[cls] + CLASS_BASE[cls].regrasp) {
       steps.push(
         { phase: "pack", dur: d / 2, item: i },
@@ -342,7 +347,7 @@ function planOrder(s: Sim, o: Order): Step[] {
       steps.push({ phase: "pack", dur: d, item: i });
     }
   });
-  // Scan the tote first. Seal the mailer last.
+  // Scan the tote first. Seal the mailer last, as part of the last item.
   steps[0].dur += between(s, 12, 18);
   steps.push({ phase: "pack", dur: between(s, 18, 26), item: o.items.length - 1 });
   if (rand(s) < FAULT_RATE) {
@@ -353,30 +358,37 @@ function planOrder(s: Sim, o: Order): Step[] {
   return steps;
 }
 
-// Seconds that a step moves the order forward on the robot's own. Pilot help
-// and faults count as 0, so the progress ring stops while a robot is red.
+// Ring weight of a step. A fault counts as 0, so the ring stops during it.
 function work(st: Step) {
-  return st.phase === "pack" || st.phase === "regrasp" ? st.dur : 0;
+  return st.phase === "fault" ? 0 : st.dur;
 }
 
 function enterStep(s: Sim, r: Robot) {
   const st = r.steps[0];
   r.phase = st.phase;
   r.t = st.dur;
+  r.stepDur = st.dur;
   r.since = s.t;
   if (st.phase !== "pack") r.flash = s.t;
   if (st.phase === "pilot_wait") s.pilotQueue.push(r.id);
 }
 
 function nextStep(s: Sim, r: Robot) {
-  r.done += work(r.steps[0]);
-  r.steps.shift();
+  const o = s.orders.get(r.order!)!;
+  const st = r.steps.shift()!;
+  if (r.steps.length > 0 && r.steps[0].item === st.item) {
+    r.done += work(st);
+  } else {
+    // The item is in the mailer: its cube leaves the tote, and the ring
+    // starts again for the next item.
+    o.packed++;
+    r.done = 0;
+  }
   if (r.steps.length > 0) {
     enterStep(s, r);
     return;
   }
-  // Order done: the mailer goes onto the conveyor.
-  const o = s.orders.get(r.order!)!;
+  // All items are packed: the tote leaves and the mailer ships.
   o.status = "conveyor";
   s.mailers.push({ order: o.id, x: robotCx(r.id) - 7 });
   s.recent.push(o.assists === 0);
@@ -395,7 +407,6 @@ function stepRobot(s: Sim, r: Robot, dt: number) {
     r.order = o.id;
     r.steps = planOrder(s, o);
     r.done = 0;
-    r.total = r.steps.reduce((a, st) => a + work(st), 0);
     enterStep(s, r);
     return;
   }
@@ -428,6 +439,7 @@ function dispatchPilots(s: Sim) {
     r.phase = "pilot";
     r.since = s.t;
     r.t = between(s, 10, 20) + CLASS_BASE[currentItem(s, r)!.cls].time * between(s, 1.2, 2.6);
+    r.stepDur = r.t;
   }
 }
 
@@ -563,12 +575,21 @@ export function robotLight(r: Robot): Light {
   }
 }
 
-// Share of the current order that is done, or null with no order.
+// Share of the current item that is done, or null with no order. One full
+// ring is one item. The ring stops while the robot waits for a pilot or has
+// a fault, and moves while the robot or a pilot works on the item.
 export function robotProgress(r: Robot): number | null {
-  if (r.order === null || r.steps.length === 0 || r.total <= 0) return null;
+  if (r.order === null || r.steps.length === 0) return null;
   const st = r.steps[0];
-  const now = work(st) > 0 ? st.dur - Math.max(0, r.t) : 0;
-  return Math.min(1, (r.done + now) / r.total);
+  let rest = 0;
+  for (const x of r.steps) {
+    if (x.item !== st.item) break;
+    rest += work(x);
+  }
+  const moving = r.phase === "pack" || r.phase === "regrasp" || r.phase === "pilot";
+  const now = moving && r.stepDur > 0 ? work(st) * (1 - Math.max(0, r.t) / r.stepDur) : 0;
+  const total = r.done + rest;
+  return total > 0 ? Math.min(1, (r.done + now) / total) : 0;
 }
 
 export function robotLabel(r: Robot): string {
