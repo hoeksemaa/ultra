@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { BRANDS, CLASS_BASE, GRASP_CLASSES } from "@/sim/catalog";
+import { BRANDS } from "@/sim/catalog";
 import {
   AISLE_Y,
   RACK_COUNT,
@@ -11,7 +11,6 @@ import {
   CONVEYOR_X0,
   CONVEYOR_Y,
   DROP_Y,
-  LEARN_Y,
   PILOT_Y,
   RACK_H,
   RACK_HEAD,
@@ -24,7 +23,6 @@ import {
   VIEW_W,
   cellPos,
   aisleX,
-  classAutonomy,
   rackX,
   robotLabel,
   robotLight,
@@ -36,7 +34,7 @@ import {
 import { ICONS, type IconName } from "./icons";
 import { CUBE, MAILER_H, MAILER_W, PACK_X, PACK_Y, TOTE_H, TOTE_W, cubeInTote, type View } from "./motion";
 import Ring from "./Ring";
-import { C, LIGHT_COLOR, pct } from "./tokens";
+import { C, LIGHT_COLOR } from "./tokens";
 
 const MONO = "var(--font-mono)";
 const SANS = "var(--font-sans)";
@@ -269,34 +267,6 @@ export default function FloorView({ sim, view, selected, onSelect }: Props) {
             <text x={x + 34} y={y + 16} fontSize={9} fill={busy ? C.white : C.w50} fontFamily={MONO}>
               {busy ? `→ ${robotName(p.robot!)}` : "FREE"}
             </text>
-          </g>
-        );
-      })}
-
-      {/* ---------- Fleet learning ---------- */}
-      <Label x={32} y={LEARN_Y} fill={C.white}>
-        04 · Autonomy by item type
-      </Label>
-      <Label x={1168} y={LEARN_Y} anchor="end" fill={C.w50}>
-        Each pilot assist trains the whole fleet
-      </Label>
-      {GRASP_CLASSES.map((c, i) => {
-        const w = (1168 - 32) / GRASP_CLASSES.length;
-        const x = 32 + i * w;
-        const y = LEARN_Y + 10;
-        const a = classAutonomy(s, c);
-        const bw = w - 20;
-        return (
-          <g key={c}>
-            <rect x={x} y={y} width={w - 4} height={44} fill={C.w04} stroke={C.w12} />
-            <Label x={x + 8} y={y + 17} fill={C.w70}>
-              {CLASS_BASE[c].label}
-            </Label>
-            <text x={x + w - 12} y={y + 18} fontSize={14} fill={C.white} fontFamily={MONO} textAnchor="end" className="metric">
-              {pct(a, 0)}
-            </text>
-            <rect x={x + 8} y={y + 28} width={bw} height={6} fill={C.w12} />
-            <rect x={x + 8} y={y + 28} width={bw * a} height={6} fill={C.white} />
           </g>
         );
       })}
