@@ -115,33 +115,27 @@ button {
   line-height: 1;
 }
 
-.hdr .meta {
-  display: flex;
-  gap: 24px;
-  align-items: flex-end;
-}
-
-.hdr .meta .clock {
+.hdr .clock {
   font-size: 22px;
   line-height: 1;
+  color: var(--white-70);
 }
 
 .controls {
   margin-left: auto;
   display: flex;
-  gap: 16px;
-  align-items: flex-end;
+  gap: 12px;
+  align-items: center;
   flex-wrap: wrap;
-}
-
-.ctl {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 .ctl-row {
   display: flex;
+  align-items: center;
+}
+
+.ctl-lbl {
+  margin-right: 8px;
 }
 
 .chip {
@@ -262,7 +256,7 @@ button {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .kpi {
-  padding: 6px 12px;
+  padding: 8px 12px;
   border-right: var(--hairline-soft);
   border-bottom: var(--hairline-soft);
 }
@@ -272,7 +266,6 @@ button {
   line-height: 1.1;
   margin-top: 2px;
 }
-.kpi .s { font-size: 10px; margin-top: 2px; }
 
 /* Action queue rows */
 .act {
@@ -311,19 +304,6 @@ button {
 .act .arrow { color: var(--orange); }
 .empty { padding: 10px 12px; color: var(--white-50); }
 
-/* Order pipeline bar */
-.pipe {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  border-bottom: var(--hairline-soft);
-}
-.pipe div {
-  padding: 6px 8px;
-  border-right: var(--hairline-soft);
-}
-.pipe div:last-child { border-right: none; }
-.pipe .v { font-size: 16px; }
-
 /* Generic list rows */
 .row {
   position: relative;
@@ -338,8 +318,8 @@ button {
   white-space: nowrap;
 }
 .row > * { overflow: hidden; text-overflow: ellipsis; }
-.row.ord { grid-template-columns: 52px 34px 22px minmax(0, 1fr) 34px; }
-.row.rob { grid-template-columns: 30px minmax(0, 1fr) 70px 40px 34px; cursor: pointer; }
+.row.ord { grid-template-columns: 52px 40px minmax(0, 1fr) 40px; }
+.row.rob { grid-template-columns: 30px minmax(0, 1fr); cursor: pointer; }
 .row.rob:hover { background: var(--white-04); }
 .row.head { color: var(--white-50); font-weight: 600; }
 .st { display: flex; align-items: center; gap: 6px; }
