@@ -29,10 +29,12 @@ import {
   robotLabel,
   robotLight,
   robotName,
+  robotProgress,
   robotX,
   type Sim,
 } from "@/sim/engine";
 import { ICONS, type IconName } from "./icons";
+import Ring from "./Ring";
 import { C, LIGHT_COLOR, pct } from "./tokens";
 
 const MONO = "var(--font-mono)";
@@ -202,9 +204,10 @@ export default function FloorView({ sim, selected, onSelect }: Props) {
               strokeWidth={sel ? 2 : 1}
             />
             <rect x={x} y={ROBOT_Y + ROBOT_H - 4} width={ROBOT_W} height={4} fill={color} />
-            <text x={x + ROBOT_W / 2} y={ROBOT_Y + 23} fontSize={10} fill={sel ? C.orange : C.white} fontFamily={MONO} fontWeight={700} textAnchor="middle">
+            <text x={x + ROBOT_W / 2} y={ROBOT_Y + 14} fontSize={10} fill={sel ? C.orange : C.white} fontFamily={MONO} fontWeight={700} textAnchor="middle">
               {robotName(r.id)}
             </text>
+            <Ring cx={x + ROBOT_W / 2} cy={ROBOT_Y + 31} r={8} width={3} value={robotProgress(r)} color={color} />
             <text x={x + ROBOT_W / 2} y={ROBOT_Y + ROBOT_H + 13} fontSize={6.8} fill={color} fontFamily={MONO} fontWeight={600} textAnchor="middle">
               {robotLabel(r)}
             </text>

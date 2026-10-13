@@ -32,11 +32,11 @@ export const ROBOT_PITCH = 50.4;
 export const ROBOT_W = 40;
 export const DROP_Y = AISLE_Y + 46;
 export const ROBOT_Y = DROP_Y + 112;
-export const ROBOT_H = 44;
+export const ROBOT_H = 52;
 export const QUEUE_CAP = 6;
 
 export const CONVEYOR_X0 = 24;
-export const CONVEYOR_Y = ROBOT_Y + 76;
+export const CONVEYOR_Y = ROBOT_Y + 84;
 export const CONVEYOR_H = 22;
 export const BIN_X = 1052;
 export const BIN_W = 116;
@@ -146,6 +146,8 @@ export interface Robot {
   since: number;
   pilot: number | null;
   flash: number;
+  done: number; // seconds of the order's own work finished
+  total: number; // seconds of the order's own work planned
 }
 
 export interface Stop extends Pt {
@@ -281,6 +283,8 @@ export function createSim(pilots = DEFAULT_PILOTS): Sim {
       since: 0,
       pilot: null,
       flash: -1e9,
+      done: 0,
+      total: 0,
     };
     for (let k = 0; k < 2; k++) {
       const o = newOrder(s, "staged");
@@ -349,6 +353,12 @@ function planOrder(s: Sim, o: Order): Step[] {
   return steps;
 }
 
+// Seconds that a step moves the order forward on the robot's own. Pilot help
+// and faults count as 0, so the progress ring stops while a robot is red.
+function work(st: Step) {
+  return st.phase === "pack" || st.phase === "regrasp" ? st.dur : 0;
+}
+
 function enterStep(s: Sim, r: Robot) {
   const st = r.steps[0];
   r.phase = st.phase;
@@ -359,6 +369,7 @@ function enterStep(s: Sim, r: Robot) {
 }
 
 function nextStep(s: Sim, r: Robot) {
+  r.done += work(r.steps[0]);
   r.steps.shift();
   if (r.steps.length > 0) {
     enterStep(s, r);
@@ -383,6 +394,8 @@ function stepRobot(s: Sim, r: Robot, dt: number) {
     o.status = "packing";
     r.order = o.id;
     r.steps = planOrder(s, o);
+    r.done = 0;
+    r.total = r.steps.reduce((a, st) => a + work(st), 0);
     enterStep(s, r);
     return;
   }
@@ -548,6 +561,14 @@ export function robotLight(r: Robot): Light {
     default:
       return "fault";
   }
+}
+
+// Share of the current order that is done, or null with no order.
+export function robotProgress(r: Robot): number | null {
+  if (r.order === null || r.steps.length === 0 || r.total <= 0) return null;
+  const st = r.steps[0];
+  const now = work(st) > 0 ? st.dur - Math.max(0, r.t) : 0;
+  return Math.min(1, (r.done + now) / r.total);
 }
 
 export function robotLabel(r: Robot): string {

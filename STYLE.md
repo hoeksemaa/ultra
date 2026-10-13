@@ -54,6 +54,7 @@ Feel: industrial, pragmatic, clear. Square corners, hairline grids, big tight he
 | System fault, an operator must fix it | fault | `● FAULT` |
 
 - Use one label for each state, in every view.
+- Each robot shows a progress ring for its current order: a hairline track, and an arc in the status color that runs clockwise from the top. Square line ends. The ring stops while the robot is red, and it moves again when the robot recovers.
 - The selected robot gets an orange outline in every view.
 - The action queue lists red robots first, then yellow robots, oldest first.
 - A recommendation that the operator can act on gets one orange button (`+1 PILOT`).
