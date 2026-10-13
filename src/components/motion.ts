@@ -1,7 +1,7 @@
 // Screen positions for the things that move on the pack line. The sim says
 // where each tote, cube, and mailer belongs; the view slides it there, so
 // nothing jumps, appears, or vanishes in place.
-import { BIN_X, CONVEYOR_Y, DROP_Y, ROBOT_W, ROBOT_Y, robotX, type Sim } from "@/sim/engine";
+import { BIN_X, CONVEYOR_SPEED, CONVEYOR_Y, DROP_Y, ROBOT_W, ROBOT_Y, robotCx, robotX, type Sim } from "@/sim/engine";
 
 export const TOTE_W = 30;
 export const TOTE_H = 12;
@@ -14,8 +14,11 @@ export const MAILER_H = 12;
 // Pack area inside the robot body, where packed cubes wait for the mailer.
 export const PACK_X = 6;
 export const PACK_Y = 44;
+const MAILER_UP = ROBOT_Y + PACK_Y - 3; // mailer top while it forms in the robot
+const MAILER_DOWN = CONVEYOR_Y + 5; // mailer top on the belt
 
 const TAU = 0.1; // real seconds for a slide to cover 63% of the way
+const DEPOSIT = 0.35; // real seconds for the robot to set a mailer on the belt
 const NEAR = 0.2; // snap when this close (SVG units)
 
 interface Body {
@@ -35,23 +38,27 @@ export interface CubeView extends Body {
   order: number;
 }
 
-export interface MailerView extends Body {
+export interface MailerView {
   order: number;
+  x: number;
+  y: number;
   // pack: cubes still sliding into the robot (mailer not drawn yet)
-  // drop: sliding out of the robot onto the belt
-  // belt: follows the belt; gone: slides under the bin, then is removed
-  stage: "pack" | "drop" | "belt" | "gone";
+  // drop: set straight down onto the belt
+  // belt: carried at belt speed, then removed under the bin
+  stage: "pack" | "drop" | "belt";
+  drop: number; // 0..1 through the deposit
 }
 
 export interface View {
   fresh: boolean;
+  t: number; // sim time at the last update
   totes: Map<number, ToteView>;
   cubes: Map<string, CubeView>; // packed cubes inside a robot
   mailers: Map<number, MailerView>;
 }
 
 export function createView(): View {
-  return { fresh: true, totes: new Map(), cubes: new Map(), mailers: new Map() };
+  return { fresh: true, t: 0, totes: new Map(), cubes: new Map(), mailers: new Map() };
 }
 
 export function toteX(robot: number) {
@@ -85,6 +92,8 @@ function ease(b: Body, k: number): boolean {
 export function updateView(v: View, s: Sim, dt: number): boolean {
   const snap = v.fresh;
   v.fresh = false;
+  const simDt = snap ? 0 : s.t - v.t; // 0 while paused
+  v.t = s.t;
 
   // Totes at a robot: in work (slot 0) or queued (slot 1 and up).
   const atRobot = new Set<number>();
@@ -125,36 +134,34 @@ export function updateView(v: View, s: Sim, dt: number): boolean {
   }
 
   // A finished order: when its last cube is in the robot, the cubes become a
-  // mailer. The mailer slides out onto the belt, then the belt carries it.
-  const onBelt = new Set<number>();
+  // mailer. The robot sets it straight down on the belt, and the belt carries
+  // it at belt speed into the bin. After it forms, the mailer moves on its
+  // own clock, so it never has to catch up with the sim.
   for (const m of s.mailers) {
-    onBelt.add(m.order);
+    if (v.mailers.has(m.order)) continue;
     const o = s.orders.get(m.order)!;
-    let mv = v.mailers.get(m.order);
-    if (!mv) {
-      addCubes(o.id, o.robot!, o.items.length);
-      mv = { order: m.order, x: m.x, y: ROBOT_Y + PACK_Y - 3, tx: m.x, ty: ROBOT_Y + PACK_Y - 3, stage: "pack" };
-      v.mailers.set(m.order, mv);
-    }
+    addCubes(o.id, o.robot!, o.items.length);
+    v.mailers.set(m.order, { order: m.order, x: robotCx(o.robot!) - MAILER_W / 2, y: MAILER_UP, stage: "pack", drop: 0 });
+  }
+  let moving = false;
+  for (const [id, mv] of v.mailers) {
     if (mv.stage === "pack") {
-      const cubes = [...v.cubes.entries()].filter(([, c]) => c.order === m.order);
+      const cubes = [...v.cubes.entries()].filter(([, c]) => c.order === id);
       if (snap || cubes.every(([, c]) => c.x === c.tx && c.y === c.ty)) {
         for (const [key] of cubes) v.cubes.delete(key);
         mv.stage = "drop";
-        mv.ty = CONVEYOR_Y + 5;
-        if (snap) mv.y = mv.ty;
       }
     }
-    if (mv.stage === "drop" && mv.y === mv.ty) mv.stage = "belt";
-    // Follow the belt while dropping too, so the mailer curves onto it.
-    if (mv.stage !== "pack") mv.tx = m.x;
-  }
-  for (const mv of v.mailers.values()) {
-    if (!onBelt.has(mv.order) && mv.stage !== "gone") {
-      for (const [key, c] of v.cubes) if (c.order === mv.order) v.cubes.delete(key);
-      mv.stage = "gone";
-      mv.tx = BIN_X + MAILER_W;
-      mv.ty = CONVEYOR_Y + 5;
+    if (mv.stage === "drop") {
+      mv.drop = snap ? 1 : Math.min(1, mv.drop + dt / DEPOSIT);
+      const e = mv.drop * mv.drop * (3 - 2 * mv.drop); // ease in and out
+      mv.y = MAILER_UP + (MAILER_DOWN - MAILER_UP) * e;
+      moving = true;
+      if (mv.drop >= 1) mv.stage = "belt";
+    } else if (mv.stage === "belt") {
+      mv.x += CONVEYOR_SPEED * simDt;
+      // The bin covers the mailer now; the sim already counted it.
+      if (mv.x >= BIN_X) v.mailers.delete(id);
     }
   }
 
@@ -168,16 +175,14 @@ export function updateView(v: View, s: Sim, dt: number): boolean {
   }
 
   const k = 1 - Math.exp(-dt / TAU);
-  let moving = false;
   for (const [id, t] of v.totes) {
     if (ease(t, k)) moving = true;
     else if (t.leaving) v.totes.delete(id);
   }
-  for (const c of v.cubes.values()) if (ease(c, k)) moving = true;
-  for (const [id, m] of v.mailers) {
-    if (ease(m, k)) moving = true;
-    // Under the bin now: the bin count already includes it.
-    else if (m.stage === "gone") v.mailers.delete(id);
+  for (const [key, c] of v.cubes) {
+    // An order can finish and ship between two frames at 60x; drop its cubes.
+    if (!s.orders.has(c.order) && !v.mailers.has(c.order)) v.cubes.delete(key);
+    else if (ease(c, k)) moving = true;
   }
   return moving;
 }
