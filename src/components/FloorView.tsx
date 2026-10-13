@@ -2,6 +2,7 @@ import { memo, useState } from "react";
 import { BRANDS, CLASS_BASE, GRASP_CLASSES } from "@/sim/catalog";
 import {
   AISLE_Y,
+  RACK_COUNT,
   BIN_W,
   BIN_X,
   CELL_H,
@@ -22,6 +23,7 @@ import {
   VIEW_H,
   VIEW_W,
   cellPos,
+  aisleX,
   classAutonomy,
   rackX,
   robotLabel,
@@ -99,6 +101,10 @@ export default function FloorView({ sim, selected, onSelect }: Props) {
         01 · Pick floor
       </Label>
 
+      {/* Aisle center lines: one beside each rack, and the front aisle. */}
+      {Array.from({ length: RACK_COUNT + 1 }, (_, i) => (
+        <line key={i} x1={aisleX(i)} x2={aisleX(i)} y1={RACK_Y + RACK_HEAD} y2={AISLE_Y} stroke={C.w12} strokeDasharray="2 6" />
+      ))}
       <line x1={20} x2={1180} y1={AISLE_Y} y2={AISLE_Y} stroke={C.w12} strokeDasharray="2 6" />
 
       {BRANDS.map((b, z) => {
@@ -112,10 +118,10 @@ export default function FloorView({ sim, selected, onSelect }: Props) {
               onMouseLeave={() => setTip(null)}
             >
               <rect x={rx} y={RACK_Y} width={RACK_W} height={RACK_HEAD - 4} fill="transparent" />
-              <text x={rx + 8} y={RACK_Y + 14} fontSize={10} fill={C.white} fontFamily={MONO} fontWeight={700}>
+              <text x={rx + 5} y={RACK_Y + 14} fontSize={10} fill={C.white} fontFamily={MONO} fontWeight={700}>
                 {b.code}
               </text>
-              <text x={rx + 8} y={RACK_Y + 27} fontSize={10} fill={C.w70} fontFamily={SANS}>
+              <text x={rx + 5} y={RACK_Y + 27} fontSize={9.5} fill={C.w70} fontFamily={SANS}>
                 {b.name}
               </text>
             </g>
@@ -282,7 +288,7 @@ export default function FloorView({ sim, selected, onSelect }: Props) {
       {s.pickers.map((p) => (
         <g key={p.id}>
           <circle cx={p.x} cy={p.y} r={4.5} fill={p.task === "idle" ? C.w30 : C.w70} />
-          {p.task === "to_robot" && <rect x={p.x + 5} y={p.y - 9} width={10} height={6} fill={C.charcoal} stroke={C.w70} />}
+          {p.order !== null && <rect x={p.x + 5} y={p.y - 9} width={10} height={6} fill={C.charcoal} stroke={C.w70} />}
         </g>
       ))}
 
