@@ -47,8 +47,7 @@ const BIN_BOTTOM = CONVEYOR_Y + CONVEYOR_H;
 
 const TIP_W = 230;
 
-// Hover popup. It names a brand, or an item of a brand, and reads the sim on
-// every frame, so the item's sample count stays live while you hover.
+// Hover popup: a brand, or one item of a brand.
 interface Tip {
   x: number;
   y: number;
@@ -310,15 +309,11 @@ export default function FloorView({ sim, view, selected, selectedOrder, onSelect
           ) : (
             (() => {
               const it = BRANDS[tip.brand].items[tip.item];
-              const n = s.data[tip.brand][tip.item];
               return (
                 <div className="tip">
                   <div className="label">{it.name}</div>
                   <div className="tip-text">
                     {CLASS_BASE[it.cls].label} · {it.lb} lb
-                  </div>
-                  <div className="tip-text">
-                    Data: {n} {n === 1 ? "sample" : "samples"}
                   </div>
                 </div>
               );
