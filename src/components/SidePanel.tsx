@@ -2,12 +2,10 @@ import { memo } from "react";
 import { BRANDS, CLASS_BASE, GRASP_CLASSES } from "@/sim/catalog";
 import {
   actions,
-  autonomy,
   classData,
   classReliability,
   newData,
   fmtDur,
-  ordersPerHour,
   robotLabel,
   robotLight,
   robotName,
@@ -35,15 +33,6 @@ function Head({ n, title, right }: { n: string; title: string; right?: string })
         {title}
       </span>
       {right && <span className="label faint">{right}</span>}
-    </div>
-  );
-}
-
-function Kpi({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="kpi">
-      <div className="label faint">{label}</div>
-      <div className="v metric">{value}</div>
     </div>
   );
 }
@@ -85,7 +74,7 @@ const OrderRow = memo(function OrderRow({
           .reverse()
           .map(({ i, done }) => {
             const Icon = ICONS[b.items[i].icon];
-            return <Icon key={i} size={12} strokeWidth={2} className={done ? "packed" : undefined} />;
+            return <Icon key={i} size={16} strokeWidth={2} className={done ? "packed" : undefined} />;
           })}
       </span>
       <span className="dim num-r">{lb.toFixed(1)} lb</span>
@@ -105,9 +94,6 @@ const ORDER_STATUS: Record<Order["status"], string> = {
 
 export default function SidePanel({ sim, view, selectedOrder, onSelectOrder, onAddPilot, onTrain }: Props) {
   const s = sim;
-  const perHour = ordersPerHour(s);
-  const auto = autonomy(s);
-  const busy = s.pilots.filter((p) => p.robot !== null).length;
   const acts = actions(s);
   const pending = newData(s);
   // Every active order, newest on top; the panel scrolls. An order leaves the
@@ -118,17 +104,8 @@ export default function SidePanel({ sim, view, selectedOrder, onSelectOrder, onA
 
   return (
     <aside className="side">
-      <section className="panel" style={{ flex: "none" }}>
-        <Head n="01" title="Fleet" />
-        <div className="kpis">
-          <Kpi label="Orders / hr" value={perHour === null ? "—" : String(Math.round(perHour))} />
-          <Kpi label="Autonomy" value={auto === null ? "—" : pct(auto, 0)} />
-          <Kpi label="Pilots busy" value={`${busy}/${s.pilots.length}`} />
-        </div>
-      </section>
-
       <section className="panel" style={{ flex: "1 1 0" }}>
-        <Head n="02" title="Action queue" />
+        <Head n="01" title="Action queue" />
         <div className="panel-body">
           {acts.length === 0 && <div className="empty label">No action needed</div>}
           {acts.map((a) =>
@@ -156,8 +133,8 @@ export default function SidePanel({ sim, view, selectedOrder, onSelectOrder, onA
         </div>
       </section>
 
-      <section className="panel" style={{ flex: "1.2 1 0" }}>
-        <Head n="03" title="Order queue" />
+      <section className="panel" style={{ flex: "1.6 1 0" }}>
+        <Head n="02" title="Order queue" />
         <div className="panel-body">
           <div className="row ord head">
             <span>ORDER</span>
@@ -189,7 +166,7 @@ export default function SidePanel({ sim, view, selectedOrder, onSelectOrder, onA
       </section>
 
       <section className="panel" style={{ flex: "none" }}>
-        <Head n="04" title="Reliability by item type" right={`Model v${s.model}`} />
+        <Head n="03" title="Reliability by item type" right={`Model v${s.model}`} />
         <div className="learn">
           <div className="learn-row head label faint">
             <span>Type</span>
