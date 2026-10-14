@@ -71,6 +71,7 @@ const OrderRow = memo(function OrderRow({
   onSelect: (order: number) => void;
 }) {
   const b = BRANDS[brand];
+  const lb = items.reduce((sum, i) => sum + b.items[i].lb, 0);
   return (
     <div className={`row ord pick ${selected ? "sel" : ""}`} onClick={() => onSelect(id)}>
       <span>#{id}</span>
@@ -86,6 +87,7 @@ const OrderRow = memo(function OrderRow({
             return <Icon key={i} size={12} strokeWidth={2} className={done ? "packed" : undefined} />;
           })}
       </span>
+      <span className="dim num-r">{lb.toFixed(1)} lb</span>
       <span className={tone || undefined}>{status}</span>
       <span className="dim">{robot}</span>
     </div>
@@ -159,6 +161,7 @@ export default function SidePanel({ sim, view, selected, selectedOrder, onSelect
             <span>ORDER</span>
             <span>BRAND</span>
             <span>ITEMS</span>
+            <span className="num-r">WEIGHT</span>
             <span>STATUS</span>
             <span>ROBOT</span>
           </div>
