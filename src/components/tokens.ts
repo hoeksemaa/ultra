@@ -9,7 +9,6 @@ export const C = {
   w04: "rgba(255,255,255,0.04)",
   paper: "#EEF1F5",
   panel: "#242424", // --white-04 on charcoal, opaque, so things can slide behind it
-  selFill: "#322018", // 10% orange on charcoal, opaque
   orange: "#FF4F00",
   ok: "#22C55E",
   watch: "#FACC15",
