@@ -275,11 +275,8 @@ button {
   align-items: center;
   padding: 7px 12px;
   border-bottom: var(--hairline-soft);
-  cursor: pointer;
   position: relative;
 }
-.act:hover { background: var(--white-04); }
-.act.sel::before,
 .row.sel::before {
   content: "";
   position: absolute;
@@ -361,7 +358,6 @@ button {
   letter-spacing: 0.02em;
 }
 
-.robot-hit { cursor: pointer; }
 .hint { cursor: help; }
 
 /* Hover popup on the pick floor */

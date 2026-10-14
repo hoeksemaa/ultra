@@ -10,7 +10,6 @@ import {
   CONVEYOR_H,
   CONVEYOR_X0,
   CONVEYOR_Y,
-  DROP_Y,
   PILOT_Y,
   RACK_H,
   RACK_HEAD,
@@ -78,9 +77,7 @@ function Tote({ x, y, cubes, active, hi }: { x: number; y: number; cubes: number
 interface Props {
   sim: Sim;
   view: View;
-  selected: number | null;
   selectedOrder: number | null;
-  onSelect: (robot: number) => void;
 }
 
 function Label({
@@ -105,7 +102,7 @@ function Label({
   );
 }
 
-export default function FloorView({ sim, view, selected, selectedOrder, onSelect }: Props) {
+export default function FloorView({ sim, view, selectedOrder }: Props) {
   const s = sim;
   // The selected order, marked in orange where it is now: its items on the
   // shelves (waiting or still to pick), the picker, its tote and cubes, or
@@ -195,11 +192,9 @@ export default function FloorView({ sim, view, selected, selectedOrder, onSelect
       {s.robots.map((r) => {
         const x = robotX(r.id);
         const color = LIGHT_COLOR[robotLight(r)];
-        const sel = selected === r.id;
         const flashAge = s.t - r.flash;
         return (
-          <g key={r.id} className="robot-hit" onClick={() => onSelect(r.id)}>
-            <rect x={x - 4} y={DROP_Y} width={ROBOT_W + 8} height={ROBOT_Y + ROBOT_H + 24 - DROP_Y} fill="transparent" />
+          <g key={r.id}>
             {flashAge < 2.5 && (
               <rect
                 x={x - 3}
@@ -217,12 +212,11 @@ export default function FloorView({ sim, view, selected, selectedOrder, onSelect
               y={ROBOT_Y}
               width={ROBOT_W}
               height={ROBOT_H}
-              fill={sel ? C.selFill : C.panel}
-              stroke={sel ? C.orange : C.w50}
-              strokeWidth={sel ? 2 : 1}
+              fill={C.panel}
+              stroke={C.w50}
             />
             <rect x={x} y={ROBOT_Y + ROBOT_H - 4} width={ROBOT_W} height={4} fill={color} />
-            <text x={x + ROBOT_W / 2} y={ROBOT_Y + 13} fontSize={10} fill={sel ? C.orange : C.white} fontFamily={MONO} fontWeight={700} textAnchor="middle">
+            <text x={x + ROBOT_W / 2} y={ROBOT_Y + 13} fontSize={10} fill={C.white} fontFamily={MONO} fontWeight={700} textAnchor="middle">
               {robotName(r.id)}
             </text>
             <Ring cx={x + ROBOT_W / 2} cy={ROBOT_Y + 29} r={8} width={3} value={robotProgress(r)} color={color} />
@@ -276,7 +270,7 @@ export default function FloorView({ sim, view, selected, selectedOrder, onSelect
         const y = PILOT_Y + 10;
         const busy = p.robot !== null;
         return (
-          <g key={p.id} className={busy ? "robot-hit" : undefined} onClick={busy ? () => onSelect(p.robot!) : undefined}>
+          <g key={p.id}>
             <rect x={x} y={y} width={86} height={24} fill={busy ? C.w12 : "transparent"} stroke={busy ? C.w70 : C.w30} />
             <text x={x + 8} y={y + 16} fontSize={10} fill={C.white} fontFamily={MONO} fontWeight={700}>
               P{p.id}

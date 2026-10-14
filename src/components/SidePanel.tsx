@@ -21,9 +21,7 @@ import { pct } from "./tokens";
 interface Props {
   sim: Sim;
   view: View;
-  selected: number | null;
   selectedOrder: number | null;
-  onSelect: (robot: number) => void;
   onSelectOrder: (order: number) => void;
   onAddPilot: () => void;
   onTrain: () => void;
@@ -105,7 +103,7 @@ const ORDER_STATUS: Record<Order["status"], string> = {
   conveyor: "SHIPPING",
 };
 
-export default function SidePanel({ sim, view, selected, selectedOrder, onSelect, onSelectOrder, onAddPilot, onTrain }: Props) {
+export default function SidePanel({ sim, view, selectedOrder, onSelectOrder, onAddPilot, onTrain }: Props) {
   const s = sim;
   const perHour = ordersPerHour(s);
   const auto = autonomy(s);
@@ -144,7 +142,7 @@ export default function SidePanel({ sim, view, selected, selectedOrder, onSelect
                 <span className="det">{a.detail}</span>
               </div>
             ) : (
-              <div key={a.key} className={`act ${selected === a.robot ? "sel" : ""}`} onClick={() => onSelect(a.robot!)}>
+              <div key={a.key} className="act">
                 <span className={`dot ${a.level}`} />
                 <span className="ttl label">
                   <span className="rid">{robotName(a.robot!)}</span>

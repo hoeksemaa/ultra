@@ -36,7 +36,7 @@ Feel: industrial, pragmatic, clear. Square corners, hairline grids, big tight he
 | `--idle` | `#FFFFFF80` | No state, or paused. |
 
 ### One color, one meaning
-- **Orange means "look here" or "act here".** Use it for the primary button, the selected robot or row, focus, eyebrow labels, and the active list number. Orange is never a status.
+- **Orange means "look here" or "act here".** Use it for the primary button, the selected order and its row, a hovered order row, focus, eyebrow labels, and the active list number. Orange is never a status.
 - **Green, yellow, and red are status only.** Never use them for buttons, links, or decoration.
 - **No brand colors.** The 10 brands get mono codes (`BRB`, `BLK`), not colors.
 - Always show status as a dot plus a label (`● PACKING`, `● REGRASP`, `● NEED PILOT`). Never use color alone. Red and orange are close in hue (350° vs 19°), and some viewers cannot tell them apart.
@@ -58,9 +58,8 @@ Feel: industrial, pragmatic, clear. Square corners, hairline grids, big tight he
 - Each robot shows a progress ring for its current item: a hairline track, and an arc in the status color that runs clockwise from the top. Square line ends. One full ring is one item.
 - The ring stops during REGRASP, NEED PILOT, and FAULT, and moves again when the robot recovers. It moves while a pilot works on the item.
 - A tote shows one cube per item, left-aligned. Cubes leave from right to left.
-- The selected robot gets an orange outline in every view.
 - Hover an order row and the row turns orange. Click it to select the order: the floor marks the order in orange where it is now. Waiting: its shelf containers. Picking: the picker, the picker's tote, and the containers still to pick. At a robot: the tote and its cubes. Shipping: the mailer, filled solid orange and drawn on top of its neighbors, from the robot to the bin. A second click clears it.
-- One selection at a time: a robot or an order.
+- Only orders can be selected. Robots, pilot cells, and action queue rows are not clickable.
 - The order queue lists every active order, newest on top, and scrolls. An order leaves the list when its mailer is under the outbound bin.
 - Panel 04, "Reliability by item type": one row per type with a reliability bar, the percent, and data (samples logged, then `+N` new since the last training in `--white-50`). The header shows the model version (`MODEL V2`).
 - Reliability changes only when the operator presses the one orange `TRAIN MODEL` button. The button is dim (35% opacity) when there is no new data.
