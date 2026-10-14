@@ -98,7 +98,7 @@ Scale for an app screen: H1 40 · H2 24 · H3 18 · Body 16 · Small 14 · Label
   - Secondary: transparent, 1px white outline.
 - **Hover popup:** charcoal fill, 1px `--white-70` border, square corners. Mono uppercase title, then sans lines in `--white-70`.
   - Company: name, then `company` in `--white-50`, then its one-sentence description.
-  - Item: name, then type and weight (`Rigid · 1.4 lb`), then `Data: N samples`. The popup reads the sim live.
+  - Item: name, then type and weight (`Rigid · 1.4 lb`). Data is per item type only, in panel 04, never per item.
 - **Item icons:** Lucide line icons (`lucide-react`), 1.75 stroke, `--white-70`. One icon per item, and each icon matches its brand. No emoji and no color.
 - Spacing: 8px grid.
 

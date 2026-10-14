@@ -192,7 +192,7 @@ export interface Sim {
   mailers: Mailer[];
   shipped: number;
   pilotRate: Record<GraspClass, number>; // chance that an item needs a pilot (from the model)
-  data: number[][]; // samples logged, by brand and item: +1 each time the item is packed
+  data: Record<GraspClass, number>; // samples logged per class: +1 each time an item of it is packed
   trained: Record<GraspClass, number>; // samples per class in the deployed model
   model: number; // model version; +1 on each training
   recent: boolean[]; // last 100 packed orders: true = no pilot
@@ -253,9 +253,11 @@ function newOrder(s: Sim, status: OrderStatus): Order {
 export function createSim(pilots = DEFAULT_PILOTS): Sim {
   const pilotRate = {} as Record<GraspClass, number>;
   const trained = {} as Record<GraspClass, number>;
+  const data = {} as Record<GraspClass, number>;
   for (const c of GRASP_CLASSES) {
     pilotRate[c] = trainedPilotRate(c, 0);
     trained[c] = 0;
+    data[c] = 0;
   }
   const s: Sim = {
     t: 0,
@@ -273,7 +275,7 @@ export function createSim(pilots = DEFAULT_PILOTS): Sim {
     mailers: [],
     shipped: 0,
     pilotRate,
-    data: BRANDS.map((b) => b.items.map(() => 0)),
+    data,
     trained,
     model: 1,
     recent: [],
@@ -390,9 +392,9 @@ function nextStep(s: Sim, r: Robot) {
     r.done += work(st);
   } else {
     // The item is in the mailer: its cube leaves the tote, the ring starts
-    // again for the next item, and the fleet logs one sample of it.
+    // again for the next item, and the fleet logs one sample of its class.
     o.packed++;
-    s.data[o.brand][o.items[st.item]]++;
+    s.data[BRANDS[o.brand].items[o.items[st.item]].cls]++;
     r.done = 0;
   }
   if (r.steps.length > 0) {
@@ -631,11 +633,12 @@ export function autonomy(s: Sim): number | null {
 
 // ---------- Model ----------
 
-// Pilot rate after training on `samples` of a class: the base failure rate,
-// halved for every `learn` samples' worth of data (1 / (1 + samples / learn)).
+// Pilot rate after training on `samples` of a class. An S-shaped learning
+// curve: a few samples help a little, the big gain comes over the next 10 to
+// 20, then returns flatten. At `learn` samples the base pilot rate halves.
 export function trainedPilotRate(c: GraspClass, samples: number): number {
   const base = 1 - CLASS_BASE[c].reliability;
-  return Math.max(0.005, base / (1 + samples / CLASS_BASE[c].learn));
+  return Math.max(0.01, base / (1 + Math.pow(samples / CLASS_BASE[c].learn, 1.5))); // at most 99%
 }
 
 // Reliability of the deployed model: chance to pack an item with no pilot.
@@ -643,13 +646,9 @@ export function classReliability(s: Sim, c: GraspClass): number {
   return 1 - s.pilotRate[c];
 }
 
-// Samples logged for a class so far (all brands).
+// Samples logged for a class so far.
 export function classData(s: Sim, c: GraspClass): number {
-  let n = 0;
-  BRANDS.forEach((b, z) => b.items.forEach((it, i) => {
-    if (it.cls === c) n += s.data[z][i];
-  }));
-  return n;
+  return s.data[c];
 }
 
 // Samples logged since the last training, all classes.
