@@ -62,6 +62,8 @@ Feel: industrial, pragmatic, clear. Square corners, hairline grids, big tight he
 - Hover an order row and the row turns orange. Click it to select the order: the floor marks the order in orange where it is now. Waiting: its shelf containers. Picking: the picker, the picker's tote, and the containers still to pick. At a robot: the tote and its cubes. Shipping: the mailer, filled solid orange and drawn on top of its neighbors, from the robot to the bin. A second click clears it.
 - One selection at a time: a robot or an order.
 - The order queue lists every active order, newest on top, and scrolls. An order leaves the list when its mailer is under the outbound bin.
+- Panel 04, "Reliability by item type": one row per type with a reliability bar, the percent, and data (samples logged, then `+N` new since the last training in `--white-50`). The header shows the model version (`MODEL V2`).
+- Reliability changes only when the operator presses the one orange `TRAIN MODEL` button. The button is dim (35% opacity) when there is no new data.
 - The action queue lists red robots first, then yellow robots, oldest first.
 - A recommendation that the operator can act on gets one orange button (`+1 PILOT`).
 
@@ -94,7 +96,9 @@ Scale for an app screen: H1 40 · H2 24 · H3 18 · Body 16 · Small 14 · Label
 - **Buttons:**
   - Primary: solid orange, mono uppercase, 4 small square ticks (4×4px, white) at the corners.
   - Secondary: transparent, 1px white outline.
-- **Hover popup:** charcoal fill, 1px `--white-70` border, square corners. Mono uppercase title, then one sans sentence in `--white-70`.
+- **Hover popup:** charcoal fill, 1px `--white-70` border, square corners. Mono uppercase title, then sans lines in `--white-70`.
+  - Company: name, then `company` in `--white-50`, then its one-sentence description.
+  - Item: name, then type and weight (`Rigid · 1.4 lb`), then `Data: N samples`. The popup reads the sim live.
 - **Item icons:** Lucide line icons (`lucide-react`), 1.75 stroke, `--white-70`. One icon per item, and each icon matches its brand. No emoji and no color.
 - Spacing: 8px grid.
 

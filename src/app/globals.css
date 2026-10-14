@@ -335,7 +335,7 @@ button {
 .learn { padding: 6px 12px 8px; }
 .learn-row {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 36px;
+  grid-template-columns: 64px minmax(0, 1fr) 36px 64px;
   align-items: center;
   gap: 8px;
   padding: 3px 0;
@@ -343,6 +343,15 @@ button {
 .learn-row .metric { text-align: right; font-size: 12px; }
 .learn .bar { height: 6px; background: var(--white-12); }
 .learn .bar span { display: block; height: 100%; background: var(--white); }
+.learn-row.head { padding-bottom: 4px; font-size: 10px; }
+.learn-row .num-r { text-align: right; }
+.train {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px 12px;
+}
+.btn-primary:disabled { opacity: 0.35; cursor: default; filter: none; }
 
 /* SVG text */
 .svg-label {

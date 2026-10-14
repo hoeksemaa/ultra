@@ -22,21 +22,24 @@ export const GRASP_CLASSES: GraspClass[] = [
   "soft",
 ];
 
-// Starting policy skill for each item class.
+// Policy skill for each item class.
+// reliability: base chance that the robot packs an item with no pilot,
+//   before any training on fleet data.
+// learn: samples of this class that halve its pilot rate when the model
+//   trains. Harder classes need more data.
 // regrasp: chance that the robot drops the item and tries again alone.
-// pilot: chance that the robot cannot finish and needs a remote pilot.
 // time: base seconds to grasp one item and place it in the mailer.
 export const CLASS_BASE: Record<
   GraspClass,
-  { label: string; regrasp: number; pilot: number; time: number }
+  { label: string; reliability: number; learn: number; regrasp: number; time: number }
 > = {
-  rigid: { label: "Rigid", regrasp: 0.05, pilot: 0.01, time: 34 },
-  bottle: { label: "Bottle", regrasp: 0.08, pilot: 0.02, time: 38 },
-  pouch: { label: "Pouch", regrasp: 0.1, pilot: 0.03, time: 40 },
-  flat: { label: "Flat", regrasp: 0.14, pilot: 0.045, time: 44 },
-  fragile: { label: "Fragile", regrasp: 0.1, pilot: 0.04, time: 52 },
-  apparel: { label: "Apparel", regrasp: 0.15, pilot: 0.06, time: 48 },
-  soft: { label: "Plush", regrasp: 0.2, pilot: 0.12, time: 50 },
+  rigid: { label: "Rigid", reliability: 0.495, learn: 4, regrasp: 0.05, time: 34 },
+  bottle: { label: "Bottle", reliability: 0.49, learn: 6, regrasp: 0.08, time: 38 },
+  pouch: { label: "Pouch", reliability: 0.485, learn: 9, regrasp: 0.1, time: 40 },
+  flat: { label: "Flat", reliability: 0.4775, learn: 14, regrasp: 0.14, time: 44 },
+  fragile: { label: "Fragile", reliability: 0.48, learn: 12, regrasp: 0.1, time: 52 },
+  apparel: { label: "Apparel", reliability: 0.47, learn: 18, regrasp: 0.15, time: 48 },
+  soft: { label: "Plush", reliability: 0.44, learn: 36, regrasp: 0.2, time: 50 },
 };
 
 export interface Item {

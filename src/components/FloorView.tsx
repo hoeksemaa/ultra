@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { BRANDS } from "@/sim/catalog";
+import { BRANDS, CLASS_BASE } from "@/sim/catalog";
 import {
   AISLE_Y,
   RACK_COUNT,
@@ -47,11 +47,13 @@ const BIN_BOTTOM = CONVEYOR_Y + CONVEYOR_H;
 
 const TIP_W = 230;
 
+// Hover popup. It names a brand, or an item of a brand, and reads the sim on
+// every frame, so the item's sample count stays live while you hover.
 interface Tip {
   x: number;
   y: number;
-  title: string;
-  text: string;
+  brand: number;
+  item: number | null;
 }
 
 // Icons never change, so they skip the 20 fps repaint.
@@ -137,7 +139,7 @@ export default function FloorView({ sim, view, selected, selectedOrder, onSelect
             <rect x={rx} y={RACK_Y} width={RACK_W} height={RACK_H} fill={C.w04} stroke={C.w30} />
             <g
               className="hint"
-              onMouseEnter={() => setTip({ x: rx, y: RACK_Y + RACK_HEAD - 2, title: b.name, text: b.about })}
+              onMouseEnter={() => setTip({ x: rx, y: RACK_Y + RACK_HEAD - 2, brand: z, item: null })}
               onMouseLeave={() => setTip(null)}
             >
               <rect x={rx} y={RACK_Y} width={RACK_W} height={RACK_HEAD - 4} fill="transparent" />
@@ -157,7 +159,7 @@ export default function FloorView({ sim, view, selected, selectedOrder, onSelect
                 <g
                   key={it.sku}
                   className="hint"
-                  onMouseEnter={() => setTip({ x, y: y + CELL_H + 2, title: it.name, text: `${it.lb} lb` })}
+                  onMouseEnter={() => setTip({ x, y: y + CELL_H + 2, brand: z, item: i })}
                   onMouseLeave={() => setTip(null)}
                 >
                   <rect
@@ -298,10 +300,30 @@ export default function FloorView({ sim, view, selected, selectedOrder, onSelect
 
       {tip && (
         <foreignObject x={Math.min(tip.x, VIEW_W - TIP_W - 8)} y={tip.y} width={TIP_W} height={120} pointerEvents="none">
-          <div className="tip">
-            <div className="label">{tip.title}</div>
-            <div className="tip-text">{tip.text}</div>
-          </div>
+          {tip.item === null ? (
+            <div className="tip">
+              <div className="label">
+                {BRANDS[tip.brand].name} <span className="faint">company</span>
+              </div>
+              <div className="tip-text">{BRANDS[tip.brand].about}</div>
+            </div>
+          ) : (
+            (() => {
+              const it = BRANDS[tip.brand].items[tip.item];
+              const n = s.data[tip.brand][tip.item];
+              return (
+                <div className="tip">
+                  <div className="label">{it.name}</div>
+                  <div className="tip-text">
+                    {CLASS_BASE[it.cls].label} · {it.lb} lb
+                  </div>
+                  <div className="tip-text">
+                    Data: {n} {n === 1 ? "sample" : "samples"}
+                  </div>
+                </div>
+              );
+            })()
+          )}
         </foreignObject>
       )}
     </svg>

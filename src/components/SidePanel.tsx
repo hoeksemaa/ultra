@@ -3,7 +3,9 @@ import { BRANDS, CLASS_BASE, GRASP_CLASSES } from "@/sim/catalog";
 import {
   actions,
   autonomy,
-  classAutonomy,
+  classData,
+  classReliability,
+  newData,
   fmtDur,
   ordersPerHour,
   robotLabel,
@@ -24,6 +26,7 @@ interface Props {
   onSelect: (robot: number) => void;
   onSelectOrder: (order: number) => void;
   onAddPilot: () => void;
+  onTrain: () => void;
 }
 
 function Head({ n, title, right }: { n: string; title: string; right?: string }) {
@@ -102,12 +105,13 @@ const ORDER_STATUS: Record<Order["status"], string> = {
   conveyor: "SHIPPING",
 };
 
-export default function SidePanel({ sim, view, selected, selectedOrder, onSelect, onSelectOrder, onAddPilot }: Props) {
+export default function SidePanel({ sim, view, selected, selectedOrder, onSelect, onSelectOrder, onAddPilot, onTrain }: Props) {
   const s = sim;
   const perHour = ordersPerHour(s);
   const auto = autonomy(s);
   const busy = s.pilots.filter((p) => p.robot !== null).length;
   const acts = actions(s);
+  const pending = newData(s);
   // Every active order, newest on top; the panel scrolls. An order leaves the
   // list when its mailer is under the outbound bin, not when the sim counts it.
   const orders = [...s.orders.values()];
@@ -187,10 +191,18 @@ export default function SidePanel({ sim, view, selected, selectedOrder, onSelect
       </section>
 
       <section className="panel" style={{ flex: "none" }}>
-        <Head n="04" title="Autonomy by item type" right="Learns from pilots" />
+        <Head n="04" title="Reliability by item type" right={`Model v${s.model}`} />
         <div className="learn">
+          <div className="learn-row head label faint">
+            <span>Type</span>
+            <span>Reliability</span>
+            <span />
+            <span className="num-r">Data</span>
+          </div>
           {GRASP_CLASSES.map((c) => {
-            const a = classAutonomy(s, c);
+            const a = classReliability(s, c);
+            const n = classData(s, c);
+            const fresh = n - s.trained[c];
             return (
               <div key={c} className="learn-row">
                 <span className="label dim">{CLASS_BASE[c].label}</span>
@@ -198,9 +210,19 @@ export default function SidePanel({ sim, view, selected, selectedOrder, onSelect
                   <span style={{ width: `${a * 100}%` }} />
                 </span>
                 <span className="metric">{pct(a, 0)}</span>
+                <span className="metric num-r">
+                  {n}
+                  {fresh > 0 && <span className="faint"> +{fresh}</span>}
+                </span>
               </div>
             );
           })}
+        </div>
+        <div className="train">
+          <button className="btn-primary" onClick={onTrain} disabled={pending === 0}>
+            Train model
+          </button>
+          <span className="label faint">{pending > 0 ? `${pending} new ${pending === 1 ? "sample" : "samples"}` : "Up to date"}</span>
         </div>
       </section>
     </aside>
