@@ -34,13 +34,13 @@ export const CLASS_BASE: Record<
   GraspClass,
   { label: string; reliability: number; learn: number; regrasp: number; time: number }
 > = {
-  rigid: { label: "Rigid", reliability: 0.61, learn: 10, regrasp: 0.05, time: 34 },
-  bottle: { label: "Bottle", reliability: 0.47, learn: 12, regrasp: 0.08, time: 38 },
-  pouch: { label: "Pouch", reliability: 0.54, learn: 13, regrasp: 0.1, time: 40 },
-  flat: { label: "Flat", reliability: 0.38, learn: 16, regrasp: 0.14, time: 44 },
-  fragile: { label: "Fragile", reliability: 0.43, learn: 15, regrasp: 0.1, time: 52 },
-  apparel: { label: "Apparel", reliability: 0.35, learn: 18, regrasp: 0.15, time: 48 },
-  soft: { label: "Plush", reliability: 0.27, learn: 24, regrasp: 0.2, time: 50 },
+  rigid: { label: "Rigid", reliability: 0.915, learn: 10, regrasp: 0.05, time: 34 },
+  bottle: { label: "Bottle", reliability: 0.705, learn: 12, regrasp: 0.08, time: 38 },
+  pouch: { label: "Pouch", reliability: 0.81, learn: 13, regrasp: 0.1, time: 40 },
+  flat: { label: "Flat", reliability: 0.57, learn: 16, regrasp: 0.14, time: 44 },
+  fragile: { label: "Fragile", reliability: 0.645, learn: 15, regrasp: 0.1, time: 52 },
+  apparel: { label: "Apparel", reliability: 0.525, learn: 18, regrasp: 0.15, time: 48 },
+  soft: { label: "Plush", reliability: 0.405, learn: 24, regrasp: 0.2, time: 50 },
 };
 
 export interface Item {
