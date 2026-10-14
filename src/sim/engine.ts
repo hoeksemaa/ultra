@@ -688,7 +688,8 @@ export function actions(s: Sim): Action[] {
       key: `r${r.id}`,
       level: light,
       robot: r.id,
-      title: robotLabel(r),
+      // The action queue spells out why a pilot is needed.
+      title: r.phase === "pilot_wait" ? "Error handling item - need pilot" : robotLabel(r),
       detail: r.phase === "fault" ? st.fault! : (currentItem(s, r)?.name ?? ""),
       wait,
     });
