@@ -10,6 +10,7 @@ import {
   CONVEYOR_H,
   CONVEYOR_X0,
   CONVEYOR_Y,
+  LINE_X0,
   PILOT_Y,
   RACK_H,
   RACK_HEAD,
@@ -38,13 +39,13 @@ import { C, LIGHT_COLOR } from "./tokens";
 const MONO = "var(--font-mono)";
 const SANS = "var(--font-sans)";
 
-const ICON = 20;
-
-
+const ICON = 26;
 const BIN_TOP = ROBOT_Y - 106;
 const BIN_BOTTOM = CONVEYOR_Y + CONVEYOR_H;
 
-const TIP_W = 230;
+const TIP_W = 300;
+const SECTION = 18; // section label size
+
 
 // Hover popup: a brand, or one item of a brand.
 interface Tip {
@@ -116,9 +117,9 @@ export default function FloorView({ sim, view, selectedOrder }: Props) {
   const [tip, setTip] = useState<Tip | null>(null);
 
   return (
-    <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="xMidYMin meet" role="img" aria-label="Warehouse floor and robot line">
+    <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Warehouse floor and robot line">
       {/* ---------- Pick floor ---------- */}
-      <Label x={32} y={26} fill={C.white}>
+      <Label x={LINE_X0} y={30} size={SECTION} fill={C.white}>
         01 · Pick floor
       </Label>
 
@@ -139,10 +140,10 @@ export default function FloorView({ sim, view, selectedOrder }: Props) {
               onMouseLeave={() => setTip(null)}
             >
               <rect x={rx} y={RACK_Y} width={RACK_W} height={RACK_HEAD - 4} fill="transparent" />
-              <text x={rx + 5} y={RACK_Y + 14} fontSize={10} fill={C.white} fontFamily={MONO} fontWeight={700}>
+              <text x={rx + 6} y={RACK_Y + 21} fontSize={16} fill={C.white} fontFamily={MONO} fontWeight={700}>
                 {b.code}
               </text>
-              <text x={rx + 5} y={RACK_Y + 27} fontSize={9.5} fill={C.w70} fontFamily={SANS}>
+              <text x={rx + 6} y={RACK_Y + 40} fontSize={12} fill={C.w70} fontFamily={SANS}>
                 {b.name}
               </text>
             </g>
@@ -167,8 +168,8 @@ export default function FloorView({ sim, view, selectedOrder }: Props) {
                     stroke={onShelf.has(it.sku) ? C.orange : C.w12}
                     strokeWidth={onShelf.has(it.sku) ? 2 : 1}
                   />
-                  <ItemIcon name={it.icon} x={x + (CELL_W - ICON) / 2} y={y + 8} />
-                  <text x={x + CELL_W / 2} y={y + 42} fontSize={9.5} fill={C.w50} fontFamily={MONO} textAnchor="middle" className="metric">
+                  <ItemIcon name={it.icon} x={x + (CELL_W - ICON) / 2} y={y + 9} />
+                  <text x={x + CELL_W / 2} y={y + 53} fontSize={13} fill={C.w50} fontFamily={MONO} textAnchor="middle" className="metric">
                     ×{s.stock[z][i]}
                   </text>
                 </g>
@@ -179,7 +180,7 @@ export default function FloorView({ sim, view, selectedOrder }: Props) {
       })}
 
       {/* ---------- Pack line ---------- */}
-      <Label x={32} y={AISLE_Y + 32} fill={C.white}>
+      <Label x={LINE_X0} y={AISLE_Y + 40} size={SECTION} fill={C.white}>
         02 · Pack line
       </Label>
 
@@ -216,15 +217,20 @@ export default function FloorView({ sim, view, selectedOrder }: Props) {
               stroke={C.w50}
             />
             <rect x={x} y={ROBOT_Y + ROBOT_H - 4} width={ROBOT_W} height={4} fill={color} />
-            <text x={x + ROBOT_W / 2} y={ROBOT_Y + 13} fontSize={10} fill={C.white} fontFamily={MONO} fontWeight={700} textAnchor="middle">
+            <text x={x + ROBOT_W / 2} y={ROBOT_Y + 15} fontSize={13} fill={C.white} fontFamily={MONO} fontWeight={700} textAnchor="middle">
               {robotName(r.id)}
             </text>
-            <Ring cx={x + ROBOT_W / 2} cy={ROBOT_Y + 29} r={8} width={3} value={robotProgress(r)} color={color} />
+            <Ring cx={x + ROBOT_W / 2} cy={ROBOT_Y + 31} r={8.5} width={3.5} value={robotProgress(r)} color={color} />
             {/* Pack area: packed cubes wait here for the mailer. */}
             <rect x={x + PACK_X - 2} y={ROBOT_Y + PACK_Y - 2} width={ROBOT_W - 2 * (PACK_X - 2)} height={CUBE + 4} fill="none" stroke={C.w12} />
-            <text x={x + ROBOT_W / 2} y={ROBOT_Y + ROBOT_H + 13} fontSize={6.8} fill={color} fontFamily={MONO} fontWeight={600} textAnchor="middle">
-              {robotLabel(r)}
-            </text>
+            {/* Two short lines, so the label fits the robot's width at a readable size. */}
+            {robotLabel(r)
+              .split(" ")
+              .map((word, k) => (
+                <text key={k} x={x + ROBOT_W / 2} y={ROBOT_Y + ROBOT_H + 14 + k * 12} fontSize={10} fill={color} fontFamily={MONO} fontWeight={600} textAnchor="middle">
+                  {word}
+                </text>
+              ))}
           </g>
         );
       })}
@@ -251,31 +257,31 @@ export default function FloorView({ sim, view, selectedOrder }: Props) {
 
       {/* Outbound bin */}
       <rect x={BIN_X} y={BIN_TOP} width={BIN_W} height={BIN_BOTTOM - BIN_TOP} fill={C.panel} stroke={C.w30} />
-      <Label x={BIN_X + 8} y={BIN_TOP + 16} fill={C.white}>
+      <Label x={BIN_X + 10} y={BIN_TOP + 22} size={13} fill={C.white}>
         Outbound
       </Label>
-      <text x={BIN_X + 8} y={BIN_TOP + 44} fontSize={24} fill={C.white} fontFamily={MONO} className="metric">
+      <text x={BIN_X + 10} y={BIN_TOP + 58} fontSize={32} fill={C.white} fontFamily={MONO} className="metric">
         {s.shipped}
       </text>
-      <Label x={BIN_X + 8} y={BIN_TOP + 58} size={8.5} fill={C.w50}>
+      <Label x={BIN_X + 10} y={BIN_TOP + 76} size={11} fill={C.w50}>
         Mailers
       </Label>
 
       {/* ---------- Remote pilots ---------- */}
-      <Label x={32} y={PILOT_Y} fill={C.white}>
+      <Label x={LINE_X0} y={PILOT_Y} size={SECTION} fill={C.white}>
         03 · Remote pilots
       </Label>
       {s.pilots.map((p, i) => {
-        const x = 32 + i * 92;
-        const y = PILOT_Y + 10;
+        const x = LINE_X0 + i * 110;
+        const y = PILOT_Y + 14;
         const busy = p.robot !== null;
         return (
           <g key={p.id}>
-            <rect x={x} y={y} width={86} height={24} fill={busy ? C.w12 : "transparent"} stroke={busy ? C.w70 : C.w30} />
-            <text x={x + 8} y={y + 16} fontSize={10} fill={C.white} fontFamily={MONO} fontWeight={700}>
+            <rect x={x} y={y} width={104} height={34} fill={busy ? C.w12 : "transparent"} stroke={busy ? C.w70 : C.w30} />
+            <text x={x + 10} y={y + 23} fontSize={15} fill={C.white} fontFamily={MONO} fontWeight={700}>
               P{p.id}
             </text>
-            <text x={x + 34} y={y + 16} fontSize={9} fill={busy ? C.white : C.w50} fontFamily={MONO}>
+            <text x={x + 44} y={y + 23} fontSize={14} fill={busy ? C.white : C.w50} fontFamily={MONO}>
               {busy ? `→ ${robotName(p.robot!)}` : "FREE"}
             </text>
           </g>
@@ -285,14 +291,14 @@ export default function FloorView({ sim, view, selectedOrder }: Props) {
       {/* ---------- Pickers ---------- */}
       {s.pickers.map((p) => (
         <g key={p.id}>
-          {p === picker && <circle cx={p.x} cy={p.y} r={8.5} fill="none" stroke={C.orange} strokeWidth={1.5} />}
-          <circle cx={p.x} cy={p.y} r={4.5} fill={p === picker ? C.orange : p.task === "idle" ? C.w30 : C.w70} />
-          {p.order !== null && <rect x={p.x + 5} y={p.y - 9} width={10} height={6} fill={C.charcoal} stroke={p === picker ? C.orange : C.w70} />}
+          {p === picker && <circle cx={p.x} cy={p.y} r={10} fill="none" stroke={C.orange} strokeWidth={2} />}
+          <circle cx={p.x} cy={p.y} r={5.5} fill={p === picker ? C.orange : p.task === "idle" ? C.w30 : C.w70} />
+          {p.order !== null && <rect x={p.x + 6} y={p.y - 12} width={12} height={8} fill={C.charcoal} stroke={p === picker ? C.orange : C.w70} />}
         </g>
       ))}
 
       {tip && (
-        <foreignObject x={Math.min(tip.x, VIEW_W - TIP_W - 8)} y={tip.y} width={TIP_W} height={120} pointerEvents="none">
+        <foreignObject x={Math.min(tip.x, VIEW_W - TIP_W - 8)} y={tip.y} width={TIP_W} height={160} pointerEvents="none">
           {tip.item === null ? (
             <div className="tip">
               <div className="label">

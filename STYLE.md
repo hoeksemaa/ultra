@@ -78,12 +78,18 @@ Feel: industrial, pragmatic, clear. Square corners, hairline grids, big tight he
 |---|---|---|---|
 | Display and headings | Saans Bold | Geist Sans 700 | Tight: letter-spacing −0.04em at 40px+, −0.02em at 20–32px. Line-height 1.0–1.1. Sentence case. |
 | Body | Saans Medium | Geist Sans 500 | 16px / 1.4. Sentence case. |
-| Labels, nav, buttons, chips, numbers | NB Architekt Pro Bold | Geist Mono 500–700 | UPPERCASE, 11–14px, letter-spacing +0.02em. |
+| Labels, nav, buttons, chips, numbers | NB Architekt Pro Bold | Geist Mono 500–700 | UPPERCASE, 12–15px, letter-spacing +0.02em. |
 | Metrics | — | Geist Mono, `font-variant-numeric: tabular-nums` | Numbers do not jump when they update. |
 
 Next.js: load Geist and Geist Mono with `next/font/google`.
 
-Scale for an app screen: H1 40 · H2 24 · H3 18 · Body 16 · Small 14 · Label 12 (mono, uppercase). Dense panels can go to 11.
+Scale for the console (CSS px at 1512 wide):
+- Header: H1 36 · clock 28 · KPI values 28 with 12px labels. The fleet KPIs sit in the header, between the clock and the controls.
+- Side panel: labels and list rows 15 · detail text 16 · nothing below 12.
+- Floor (SVG units, about 0.85 px each): section labels 18 · rack codes 16 · rack names 12 · item counts 13 · robot names 13 · robot status 10, split over two lines.
+- At widths up to 1480px, the header steps down (H1 30, KPIs 24, chips 14) to stay on one line.
+
+Spacing: 16px panel padding, 28px header padding. The racks and the pack line share the same left and right edges.
 
 ## Shapes and layout
 - **Corners: square.** `border-radius: 0` everywhere. Circles only for status dots and people on the floor map.

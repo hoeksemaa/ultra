@@ -1,12 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { STEP, createSim, fmtClock, setPilotTarget, step, train, type Sim } from "@/sim/engine";
+import { STEP, autonomy, createSim, fmtClock, ordersPerHour, setPilotTarget, step, train, type Sim } from "@/sim/engine";
 import FloorView from "./FloorView";
 import { createView, updateView, type View } from "./motion";
 import SidePanel from "./SidePanel";
+import { pct } from "./tokens";
 
 const SPEEDS = [1, 10, 60];
+
+function Kpi({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="hkpi">
+      <div className="label faint k">{label}</div>
+      <div className="v metric">{value}</div>
+    </div>
+  );
+}
 
 // The sim and its view always change together, so they live in one state.
 interface World {
@@ -72,6 +82,10 @@ export default function FleetConsole() {
     setSelectedOrder((cur) => (cur === id ? null : id));
   }, []);
 
+  const perHour = ordersPerHour(sim);
+  const auto = autonomy(sim);
+  const busy = sim.pilots.filter((p) => p.robot !== null).length;
+
   return (
     <div className="app">
       <header className="hdr">
@@ -80,6 +94,11 @@ export default function FleetConsole() {
           <h1>OP1 Fleet Console</h1>
         </div>
         <div className="metric clock">{fmtClock(sim.t)}</div>
+        <div className="hkpis">
+          <Kpi label="Orders / hr" value={perHour === null ? "—" : String(Math.round(perHour))} />
+          <Kpi label="Autonomy" value={auto === null ? "—" : pct(auto, 0)} />
+          <Kpi label="Pilots busy" value={`${busy}/${sim.pilots.length}`} />
+        </div>
         <div className="controls">
           <div className="ctl-row">
             <button className="chip" onClick={() => setPaused((p) => !p)}>

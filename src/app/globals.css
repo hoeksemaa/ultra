@@ -50,7 +50,7 @@ button {
 
 .label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -72,8 +72,8 @@ button {
 /* ---------- Status dots ---------- */
 .dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex: none;
 }
@@ -96,35 +96,49 @@ button {
 
 .hdr {
   display: flex;
-  align-items: flex-end;
-  gap: 32px;
-  padding: 14px 24px 12px;
+  align-items: center;
+  gap: 28px;
+  padding: 16px 28px;
   border-bottom: var(--hairline);
   flex-wrap: wrap;
 }
 
 .hdr .eyebrow {
   color: var(--orange);
-  margin-bottom: 4px;
+  font-size: 13px;
+  margin-bottom: 6px;
 }
 
 .hdr h1 {
-  font-size: 28px;
+  font-size: 36px;
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
 }
 
 .hdr .clock {
-  font-size: 22px;
+  font-size: 28px;
   line-height: 1;
   color: var(--white-70);
+}
+
+/* Fleet KPIs, in the header between the clock and the controls. */
+.hkpis { display: flex; }
+.hkpi {
+  padding: 2px 22px;
+  border-left: var(--hairline-soft);
+}
+.hkpi .k { font-size: 12px; }
+.hkpi .v {
+  font-size: 28px;
+  line-height: 1.05;
+  margin-top: 4px;
 }
 
 .controls {
   margin-left: auto;
   display: flex;
-  gap: 12px;
+  gap: 14px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -135,18 +149,18 @@ button {
 }
 
 .ctl-lbl {
-  margin-right: 8px;
+  margin-right: 10px;
 }
 
 .chip {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  height: 26px;
-  min-width: 34px;
-  padding: 0 8px;
+  height: 38px;
+  min-width: 44px;
+  padding: 0 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -164,7 +178,7 @@ button {
 }
 .chip.value {
   cursor: default;
-  min-width: 36px;
+  min-width: 48px;
   border-color: var(--white-50);
 }
 .chip.value:hover { border-color: var(--white-50); }
@@ -173,32 +187,32 @@ button {
 .btn-primary {
   position: relative;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
   background:
-    linear-gradient(var(--white), var(--white)) top 2px left 2px / 3px 3px no-repeat,
-    linear-gradient(var(--white), var(--white)) top 2px right 2px / 3px 3px no-repeat,
-    linear-gradient(var(--white), var(--white)) bottom 2px left 2px / 3px 3px no-repeat,
-    linear-gradient(var(--white), var(--white)) bottom 2px right 2px / 3px 3px no-repeat,
+    linear-gradient(var(--white), var(--white)) top 3px left 3px / 4px 4px no-repeat,
+    linear-gradient(var(--white), var(--white)) top 3px right 3px / 4px 4px no-repeat,
+    linear-gradient(var(--white), var(--white)) bottom 3px left 3px / 4px 4px no-repeat,
+    linear-gradient(var(--white), var(--white)) bottom 3px right 3px / 4px 4px no-repeat,
     var(--orange);
   color: var(--charcoal);
-  padding: 6px 10px;
+  padding: 10px 16px;
   white-space: nowrap;
 }
 .btn-primary:hover { filter: brightness(1.08); }
 
 .main {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(300px, 1fr);
+  grid-template-columns: minmax(0, 1fr) clamp(460px, 31vw, 600px);
   min-height: 0;
 }
 
 .floor {
   position: relative;
   min-height: 0;
-  padding: 8px 8px 4px;
+  padding: 12px 16px;
 }
 
 .floor svg {
@@ -211,9 +225,10 @@ button {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  padding: 6px 24px;
+  padding: 8px 28px;
   border-top: var(--hairline);
   color: var(--white-50);
+  font-size: 13px;
   flex-wrap: wrap;
 }
 .ftr a { color: var(--white-70); }
@@ -238,11 +253,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 12px 6px;
+  gap: 12px;
+  padding: 12px 16px 10px;
   border-bottom: var(--hairline-soft);
 }
-.panel-hd .num { color: var(--orange); margin-right: 8px; }
+.panel-hd .num { color: var(--orange); margin-right: 10px; }
 
 .panel-body {
   overflow-y: auto;
@@ -251,29 +266,13 @@ button {
   scrollbar-color: var(--white-30) transparent;
 }
 
-.kpis {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.kpi {
-  padding: 8px 12px;
-  border-right: var(--hairline-soft);
-  border-bottom: var(--hairline-soft);
-}
-.kpi:nth-child(3n) { border-right: none; }
-.kpi .v {
-  font-size: 20px;
-  line-height: 1.1;
-  margin-top: 2px;
-}
-
 /* Action queue rows */
 .act {
   display: grid;
   grid-template-columns: 10px minmax(0, 1fr) auto;
-  gap: 2px 8px;
+  gap: 4px 10px;
   align-items: center;
-  padding: 7px 12px;
+  padding: 10px 16px;
   border-bottom: var(--hairline-soft);
   position: relative;
 }
@@ -286,11 +285,11 @@ button {
   width: 3px;
   background: var(--orange);
 }
-.act .ttl { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+.act .ttl { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
 .act .rid { color: var(--white); }
 .act .det {
   grid-column: 2 / 4;
-  font-size: 12px;
+  font-size: 16px;
   color: var(--white-70);
   white-space: nowrap;
   overflow: hidden;
@@ -299,7 +298,7 @@ button {
 .act.rec { cursor: default; background: var(--white-04); }
 .act.rec .ttl { color: var(--orange); }
 .act .arrow { color: var(--orange); }
-.empty { padding: 10px 12px; color: var(--white-50); }
+.empty { padding: 14px 16px; color: var(--white-50); }
 
 /* Generic list rows */
 .row {
@@ -307,15 +306,15 @@ button {
   display: grid;
   align-items: center;
   gap: 8px;
-  padding: 4px 12px;
+  padding: 7px 16px;
   border-bottom: var(--hairline-soft);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .row > * { overflow: hidden; text-overflow: ellipsis; }
-.row.ord { grid-template-columns: 52px 38px 44px 46px minmax(0, 1fr) 40px; }
+.row.ord { grid-template-columns: 66px 48px 58px 62px minmax(0, 1fr) 48px; }
 .row .num-r { text-align: right; }
 .row .items { display: flex; gap: 4px; }
 .row .items svg { display: block; flex: none; }
@@ -329,24 +328,24 @@ button {
 .st { display: flex; align-items: center; gap: 6px; }
 
 /* Autonomy by item type */
-.learn { padding: 6px 12px 8px; }
+.learn { padding: 6px 16px 6px; }
 .learn-row {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 36px 64px;
+  grid-template-columns: 88px minmax(0, 1fr) 50px 96px;
   align-items: center;
-  gap: 8px;
-  padding: 3px 0;
+  gap: 12px;
+  padding: 2px 0;
 }
-.learn-row .metric { text-align: right; font-size: 12px; }
-.learn .bar { height: 6px; background: var(--white-12); }
+.learn-row .metric { text-align: right; font-size: 16px; }
+.learn .bar { height: 8px; background: var(--white-12); }
 .learn .bar span { display: block; height: 100%; background: var(--white); }
-.learn-row.head { padding-bottom: 4px; font-size: 10px; }
+.learn-row.head { padding-bottom: 6px; font-size: 12px; }
 .learn-row .num-r { text-align: right; }
 .train {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 12px 12px;
+  gap: 16px;
+  padding: 4px 16px 14px;
 }
 .btn-primary:disabled { opacity: 0.35; cursor: default; filter: none; }
 
@@ -363,17 +362,44 @@ button {
 /* Hover popup on the pick floor */
 .tip {
   display: inline-block;
-  max-width: 230px;
-  padding: 8px 10px;
+  max-width: 300px;
+  padding: 10px 12px;
   background: var(--charcoal);
   border: 1px solid var(--white-70);
   color: var(--white);
 }
 .tip-text {
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: 6px;
+  font-size: 16px;
   line-height: 1.35;
   color: var(--white-70);
+}
+
+/* Laptop widths: a tighter header, so it stays on one line. */
+@media (max-width: 1480px) {
+  .hdr { gap: 18px; padding: 14px 20px; }
+  .hdr h1 { font-size: 30px; }
+  .hdr .eyebrow { font-size: 12px; }
+  .hdr .clock { font-size: 24px; }
+  .hkpi { padding: 2px 14px; }
+  .hkpi .k { font-size: 11px; }
+  .hkpi .v { font-size: 24px; }
+  .controls { gap: 10px; }
+  .chip { font-size: 14px; height: 34px; min-width: 40px; padding: 0 10px; }
+  .chip.value { min-width: 42px; }
+  .ctl-lbl { font-size: 14px; }
+}
+
+/* Short screens: tighter side panel rows. */
+@media (max-height: 820px) {
+  .panel-hd { padding: 9px 16px 8px; }
+  .act { padding: 8px 16px; }
+  .act .det { font-size: 15px; }
+  .row { padding: 5px 16px; }
+  .learn-row { padding: 1px 0; }
+  .learn-row .metric { font-size: 15px; }
+  .train { padding: 2px 16px 10px; }
+  .btn-primary { padding: 8px 14px; }
 }
 
 /* Narrow screens: stack the panels. */

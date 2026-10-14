@@ -13,36 +13,40 @@ export const VIEW_W = 1200;
 // next to its column. The front aisle connects the aisles to the pack line.
 export const FLOOR_X0 = 32;
 export const RACK_COUNT = 10;
-export const RACK_W = 86;
+export const RACK_W = 96;
 export const AISLE_W = (1136 - RACK_COUNT * RACK_W) / (RACK_COUNT + 1);
 export const RACK_PITCH = RACK_W + AISLE_W;
-export const RACK_Y = 40;
-export const RACK_HEAD = 34;
+export const RACK_Y = 46;
+export const RACK_HEAD = 50;
 export const RACK_COLS = 2;
 export const RACK_ROWS = 5;
-export const CELL_W = 38;
-export const CELL_H = 50;
+export const CELL_W = 43;
+export const CELL_H = 62;
 export const CELL_GAP = 4;
 export const RACK_H = RACK_HEAD + RACK_ROWS * CELL_H + (RACK_ROWS - 1) * CELL_GAP + 6;
-export const AISLE_Y = RACK_Y + RACK_H + 20;
+export const AISLE_Y = RACK_Y + RACK_H + 22;
+
+// The pack line spans the same x range as the racks.
+export const LINE_X0 = FLOOR_X0 + AISLE_W;
+export const LINE_X1 = FLOOR_X0 + 1136 - AISLE_W;
 
 export const ROBOT_COUNT = 20;
-export const ROBOT_X0 = 32;
-export const ROBOT_PITCH = 50.4;
-export const ROBOT_W = 40;
-export const DROP_Y = AISLE_Y + 46;
+export const ROBOT_W = 42;
+export const BIN_W = 116;
+export const BIN_X = LINE_X1 - BIN_W;
+export const ROBOT_X0 = LINE_X0;
+export const ROBOT_PITCH = (BIN_X - 20 - ROBOT_X0 - ROBOT_W) / (ROBOT_COUNT - 1);
+export const DROP_Y = AISLE_Y + 56;
 export const ROBOT_Y = DROP_Y + 128;
 export const ROBOT_H = 60;
 export const QUEUE_CAP = 6;
 
-export const CONVEYOR_X0 = 24;
-export const CONVEYOR_Y = ROBOT_Y + ROBOT_H + 32;
+export const CONVEYOR_X0 = LINE_X0;
+export const CONVEYOR_Y = ROBOT_Y + ROBOT_H + 38;
 export const CONVEYOR_H = 22;
-export const BIN_X = 1052;
-export const BIN_W = 116;
 
-export const PILOT_Y = CONVEYOR_Y + 60;
-export const VIEW_H = PILOT_Y + 48;
+export const PILOT_Y = CONVEYOR_Y + 70;
+export const VIEW_H = PILOT_Y + 64;
 
 const WALK_SPEED = 15; // units/s (1.5 m/s)
 export const CONVEYOR_SPEED = 8; // units/s (0.8 m/s)
