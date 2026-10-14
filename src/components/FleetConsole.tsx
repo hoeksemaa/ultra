@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { STEP, createSim, fmtClock, setPilotTarget, step, type Sim } from "@/sim/engine";
+import { STEP, createSim, fmtClock, setPilotTarget, step, train, type Sim } from "@/sim/engine";
 import FloorView from "./FloorView";
 import { createView, updateView, type View } from "./motion";
 import SidePanel from "./SidePanel";
@@ -136,6 +136,10 @@ export default function FleetConsole() {
           onSelect={onSelect}
           onSelectOrder={onSelectOrder}
           onAddPilot={() => changePilots(1)}
+          onTrain={() => {
+            train(sim);
+            setFrame((f) => f + 1);
+          }}
         />
       </main>
 

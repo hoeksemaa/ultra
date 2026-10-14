@@ -191,7 +191,10 @@ export interface Sim {
   pilotQueue: number[];
   mailers: Mailer[];
   shipped: number;
-  pilotRate: Record<GraspClass, number>; // chance that an item needs a pilot
+  pilotRate: Record<GraspClass, number>; // chance that an item needs a pilot (from the model)
+  data: number[][]; // samples logged, by brand and item: +1 each time the item is packed
+  trained: Record<GraspClass, number>; // samples per class in the deployed model
+  model: number; // model version; +1 on each training
   recent: boolean[]; // last 100 packed orders: true = no pilot
   packTimes: number[]; // sim times of packed orders, last hour
   stock: number[][]; // units left, by brand and item
@@ -249,7 +252,11 @@ function newOrder(s: Sim, status: OrderStatus): Order {
 
 export function createSim(pilots = DEFAULT_PILOTS): Sim {
   const pilotRate = {} as Record<GraspClass, number>;
-  for (const c of GRASP_CLASSES) pilotRate[c] = CLASS_BASE[c].pilot;
+  const trained = {} as Record<GraspClass, number>;
+  for (const c of GRASP_CLASSES) {
+    pilotRate[c] = trainedPilotRate(c, 0);
+    trained[c] = 0;
+  }
   const s: Sim = {
     t: 0,
     rng: SEED,
@@ -266,6 +273,9 @@ export function createSim(pilots = DEFAULT_PILOTS): Sim {
     mailers: [],
     shipped: 0,
     pilotRate,
+    data: BRANDS.map((b) => b.items.map(() => 0)),
+    trained,
+    model: 1,
     recent: [],
     packTimes: [],
     stock: [],
@@ -379,9 +389,10 @@ function nextStep(s: Sim, r: Robot) {
   if (r.steps.length > 0 && r.steps[0].item === st.item) {
     r.done += work(st);
   } else {
-    // The item is in the mailer: its cube leaves the tote, and the ring
-    // starts again for the next item.
+    // The item is in the mailer: its cube leaves the tote, the ring starts
+    // again for the next item, and the fleet logs one sample of it.
     o.packed++;
+    s.data[o.brand][o.items[st.item]]++;
     r.done = 0;
   }
   if (r.steps.length > 0) {
@@ -417,11 +428,8 @@ function stepRobot(s: Sim, r: Robot, dt: number) {
   nextStep(s, r);
 }
 
+// The model does not change on its own: samples pile up until someone trains.
 function finishPilot(s: Sim, r: Robot) {
-  // Each pilot episode adds training data. The shared policy gets a little
-  // better at this item class on every robot in the fleet.
-  const cls = currentItem(s, r)!.cls;
-  s.pilotRate[cls] = Math.max(0.005, s.pilotRate[cls] * 0.975);
   s.orders.get(r.order!)!.assists++;
   const p = s.pilots.find((x) => x.robot === r.id)!;
   p.robot = null;
@@ -621,8 +629,42 @@ export function autonomy(s: Sim): number | null {
   return s.recent.filter(Boolean).length / s.recent.length;
 }
 
-export function classAutonomy(s: Sim, c: GraspClass): number {
+// ---------- Model ----------
+
+// Pilot rate after training on `samples` of a class: the base failure rate,
+// halved for every `learn` samples' worth of data (1 / (1 + samples / learn)).
+export function trainedPilotRate(c: GraspClass, samples: number): number {
+  const base = 1 - CLASS_BASE[c].reliability;
+  return Math.max(0.005, base / (1 + samples / CLASS_BASE[c].learn));
+}
+
+// Reliability of the deployed model: chance to pack an item with no pilot.
+export function classReliability(s: Sim, c: GraspClass): number {
   return 1 - s.pilotRate[c];
+}
+
+// Samples logged for a class so far (all brands).
+export function classData(s: Sim, c: GraspClass): number {
+  let n = 0;
+  BRANDS.forEach((b, z) => b.items.forEach((it, i) => {
+    if (it.cls === c) n += s.data[z][i];
+  }));
+  return n;
+}
+
+// Samples logged since the last training, all classes.
+export function newData(s: Sim): number {
+  return GRASP_CLASSES.reduce((n, c) => n + classData(s, c) - s.trained[c], 0);
+}
+
+// Train on all samples so far and deploy to every robot at once.
+export function train(s: Sim) {
+  for (const c of GRASP_CLASSES) {
+    const n = classData(s, c);
+    s.trained[c] = n;
+    s.pilotRate[c] = trainedPilotRate(c, n);
+  }
+  s.model++;
 }
 
 export interface Action {
