@@ -50,11 +50,11 @@ Feel: industrial, pragmatic, clear. Square corners, hairline grids, big tight he
 | Packing (scan tote, pack items, seal mailer) | ok | `● PACKING` |
 | Grasp failed, robot tries again alone | watch | `● REGRASP` |
 | No tote in the infeed queue | watch | `● NO TOTE` |
-| Grasp failed, waiting for a remote pilot | fault | `● NEED PILOT` |
+| Grasp failed, waiting for a remote pilot | fault | `● NEED PILOT` (action queue: `● ERROR HANDLING ITEM - NEED PILOT`) |
 | Remote pilot in control | fault | `● PILOT P2` |
 | System fault, an operator must fix it | fault | `● FAULT` |
 
-- Use one label for each state, in every view.
+- Use one label for each state, in every view. One exception: the action queue spells out NEED PILOT as ERROR HANDLING ITEM - NEED PILOT.
 - Each robot shows a progress ring for its current item: a hairline track, and an arc in the status color that runs clockwise from the top. Square line ends. One full ring is one item.
 - The ring stops during REGRASP, NEED PILOT, and FAULT, and moves again when the robot recovers. It moves while a pilot works on the item.
 - A tote shows one cube per item, left-aligned. Cubes leave from right to left.
