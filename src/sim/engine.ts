@@ -16,8 +16,10 @@ export const RACK_COUNT = 10;
 export const RACK_W = 96;
 export const AISLE_W = (1136 - RACK_COUNT * RACK_W) / (RACK_COUNT + 1);
 export const RACK_PITCH = RACK_W + AISLE_W;
-export const RACK_Y = 46;
-export const RACK_HEAD = 50;
+// Only the vertical distance from the front aisle to each container counts
+// for the sim, so RACK_Y and RACK_HEAD change the picture, not the timing.
+export const RACK_Y = 12;
+export const RACK_HEAD = 30;
 export const RACK_COLS = 2;
 export const RACK_ROWS = 5;
 export const CELL_W = 43;
@@ -38,15 +40,18 @@ export const ROBOT_X0 = LINE_X0;
 export const ROBOT_PITCH = (BIN_X - 20 - ROBOT_X0 - ROBOT_W) / (ROBOT_COUNT - 1);
 export const DROP_Y = AISLE_Y + 56;
 export const ROBOT_Y = DROP_Y + 128;
-export const ROBOT_H = 60;
+export const ROBOT_H = 64;
 export const QUEUE_CAP = 6;
 
 export const CONVEYOR_X0 = LINE_X0;
-export const CONVEYOR_Y = ROBOT_Y + ROBOT_H + 38;
+// The gap under each robot holds its pilot badge.
+export const CONVEYOR_Y = ROBOT_Y + ROBOT_H + 32;
 export const CONVEYOR_H = 22;
 
-export const PILOT_Y = CONVEYOR_Y + 70;
-export const VIEW_H = PILOT_Y + 64;
+// Pilot seats, under the belt.
+export const PILOT_Y = CONVEYOR_Y + CONVEYOR_H + 22;
+export const SEAT_H = 32;
+export const VIEW_H = PILOT_Y + SEAT_H + 12;
 
 const WALK_SPEED = 15; // units/s (1.5 m/s)
 export const CONVEYOR_SPEED = 8; // units/s (0.8 m/s)
@@ -118,7 +123,9 @@ function walk(m: { x: number; y: number; path: Pt[] }, dt: number): boolean {
 
 export type Phase = "idle" | "pack" | "regrasp" | "pilot_wait" | "pilot" | "fault";
 
-export type Light = "ok" | "watch" | "fault";
+// normal: no color. watch: red tint, not a problem yet. act: solid red, a
+// human must act.
+export type Status = "normal" | "watch" | "act";
 
 export type OrderStatus = "queued" | "picking" | "staged" | "packing" | "conveyor";
 
@@ -149,7 +156,6 @@ export interface Robot {
   t: number;
   since: number;
   pilot: number | null;
-  flash: number;
   stepDur: number; // full length of the current step
   done: number; // ring weight finished on the current item
 }
@@ -189,9 +195,8 @@ export interface Sim {
   nextArrival: number;
   robots: Robot[];
   pickers: Picker[];
-  pilots: Pilot[];
+  pilots: Pilot[]; // sorted by id; ids are 1 to 10
   pilotTarget: number;
-  nextPilotId: number;
   pilotQueue: number[];
   mailers: Mailer[];
   shipped: number;
@@ -274,7 +279,6 @@ export function createSim(pilots = DEFAULT_PILOTS): Sim {
     pickers: [],
     pilots: [],
     pilotTarget: pilots,
-    nextPilotId: 1,
     pilotQueue: [],
     mailers: [],
     shipped: 0,
@@ -300,7 +304,6 @@ export function createSim(pilots = DEFAULT_PILOTS): Sim {
       t: 0,
       since: 0,
       pilot: null,
-      flash: -1e9,
       stepDur: 0,
       done: 0,
     };
@@ -315,20 +318,34 @@ export function createSim(pilots = DEFAULT_PILOTS): Sim {
   for (let i = 0; i < PICKERS; i++) {
     s.pickers.push({ id: i + 1, x: 60 + i * (1080 / PICKERS), y: AISLE_Y, path: [], stops: [], task: "idle", order: null, robot: null, t: 0 });
   }
-  for (let i = 0; i < pilots; i++) s.pilots.push({ id: s.nextPilotId++, robot: null });
+  setPilotTarget(s, pilots);
   s.nextArrival = -Math.log(1 - rand(s)) / ARRIVAL_RATE;
   return s;
 }
 
 // ---------- Controls ----------
 
+export const MAX_PILOTS = 10;
+
+// Each pilot has a fixed seat: a new pilot takes the lowest free number.
+// When there are more pilots than the target, the pilots with the highest
+// numbers leave: a free one at once, a busy one after its item.
 export function setPilotTarget(s: Sim, n: number) {
-  s.pilotTarget = Math.max(1, Math.min(10, n));
-  while (s.pilots.length < s.pilotTarget) s.pilots.push({ id: s.nextPilotId++, robot: null });
-  // Remove free pilots now; busy pilots leave when they finish.
-  for (let i = s.pilots.length - 1; i >= 0 && s.pilots.length > s.pilotTarget; i--) {
+  s.pilotTarget = Math.max(1, Math.min(MAX_PILOTS, n));
+  while (s.pilots.length < s.pilotTarget) {
+    let id = 1;
+    while (s.pilots.some((p) => p.id === id)) id++;
+    s.pilots.push({ id, robot: null });
+    s.pilots.sort((a, b) => a.id - b.id);
+  }
+  for (let i = s.pilots.length - 1; i >= s.pilotTarget; i--) {
     if (s.pilots[i].robot === null) s.pilots.splice(i, 1);
   }
+}
+
+// True for a pilot that leaves after its item.
+export function pilotLeaving(s: Sim, p: Pilot) {
+  return s.pilots.indexOf(p) >= s.pilotTarget;
 }
 
 // ---------- Robots ----------
@@ -374,7 +391,7 @@ function planOrder(s: Sim, o: Order): Step[] {
 }
 
 // Ring weight of a step. A fault or a regrasp counts as 0, so the ring
-// stops while the robot is red or yellow and does not jump after.
+// stops while the robot is red and does not jump after.
 function work(st: Step) {
   return st.phase === "fault" || st.phase === "regrasp" ? 0 : st.dur;
 }
@@ -385,7 +402,6 @@ function enterStep(s: Sim, r: Robot) {
   r.t = st.dur;
   r.stepDur = st.dur;
   r.since = s.t;
-  if (st.phase !== "pack") r.flash = s.t;
   if (st.phase === "pilot_wait") s.pilotQueue.push(r.id);
 }
 
@@ -438,8 +454,8 @@ function stepRobot(s: Sim, r: Robot, dt: number) {
 function finishPilot(s: Sim, r: Robot) {
   s.orders.get(r.order!)!.assists++;
   const p = s.pilots.find((x) => x.robot === r.id)!;
+  if (pilotLeaving(s, p)) s.pilots.splice(s.pilots.indexOf(p), 1);
   p.robot = null;
-  if (s.pilots.length > s.pilotTarget) s.pilots.splice(s.pilots.indexOf(p), 1);
   r.pilot = null;
 }
 
@@ -578,15 +594,19 @@ export function step(s: Sim, dt: number) {
 
 // ---------- Read-only views for the UI ----------
 
-export function robotLight(r: Robot): Light {
+// A pilot at work is normal: a human already acts. A robot between two
+// totes is idle for one step, so "No tote" is a watch only after 10 s.
+export function robotStatus(s: Sim, r: Robot): Status {
   switch (r.phase) {
     case "pack":
-      return "ok";
-    case "regrasp":
+    case "pilot":
+      return "normal";
     case "idle":
+      return s.t - r.since >= 10 ? "watch" : "normal";
+    case "regrasp":
       return "watch";
     default:
-      return "fault";
+      return "act";
   }
 }
 
@@ -610,18 +630,23 @@ export function robotProgress(r: Robot): number | null {
 export function robotLabel(r: Robot): string {
   switch (r.phase) {
     case "idle":
-      return "NO TOTE";
+      return "No tote";
     case "pack":
-      return "PACKING";
+      return "Packing";
     case "regrasp":
-      return "REGRASP";
+      return "Regrasp";
     case "pilot_wait":
-      return "NEED PILOT";
+      return "Need pilot";
     case "pilot":
-      return `PILOT P${r.pilot}`;
+      return `Pilot ${r.pilot}`;
     case "fault":
-      return "FAULT";
+      return "Fault";
   }
+}
+
+// The fault text of a robot in a fault, or null.
+export function robotFault(r: Robot): string | null {
+  return r.phase === "fault" ? (r.steps[0]?.fault ?? null) : null;
 }
 
 export function ordersPerHour(s: Sim): number | null {
@@ -670,44 +695,6 @@ export function train(s: Sim) {
   s.model++;
 }
 
-export interface Action {
-  key: string;
-  level: "fault" | "watch" | "rec";
-  robot: number | null;
-  title: string;
-  detail: string;
-  wait: number;
-}
-
-// Robots that need attention: red first, then yellow, oldest first.
-// A recommendation goes on top.
-export function actions(s: Sim): Action[] {
-  const rows: Action[] = [];
-  for (const r of s.robots) {
-    const light = robotLight(r);
-    const wait = s.t - r.since;
-    if (light === "ok" || (r.phase === "idle" && wait < 10)) continue;
-    const st = r.steps[0];
-    rows.push({
-      key: `r${r.id}`,
-      level: light,
-      robot: r.id,
-      // The action queue spells out why a pilot is needed.
-      title: r.phase === "pilot_wait" ? "Error handling item - need pilot" : robotLabel(r),
-      detail: r.phase === "fault" ? st.fault! : (currentItem(s, r)?.name ?? ""),
-      wait,
-    });
-  }
-  const rank = { rec: 0, fault: 1, watch: 2 };
-  rows.sort((a, b) => rank[a.level] - rank[b.level] || b.wait - a.wait);
-
-  const stuck = s.robots.some((r) => r.phase === "pilot_wait" && s.t - r.since > 30);
-  if (stuck && s.pilots.length < 10) {
-    rows.unshift({ key: "rec-pilot", level: "rec", robot: null, title: "Add a pilot", detail: "Robots wait for a pilot", wait: 0 });
-  }
-  return rows;
-}
-
 export function fmtDur(sec: number): string {
   const m = Math.floor(sec / 60);
   const ss = Math.floor(sec % 60);
@@ -722,6 +709,7 @@ export function fmtClock(sec: number): string {
   return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 }
 
-export function robotName(i: number) {
-  return `R${String(i + 1).padStart(2, "0")}`;
+// Robots are numbered 1 to 20 on the floor.
+export function robotNumber(i: number) {
+  return i + 1;
 }

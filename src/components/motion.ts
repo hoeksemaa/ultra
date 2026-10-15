@@ -13,12 +13,13 @@ export const MAILER_H = 12;
 
 // Pack area inside the robot body, where packed cubes wait for the mailer.
 export const PACK_X = 6;
-export const PACK_Y = 44;
+export const PACK_Y = 50;
 const MAILER_UP = ROBOT_Y + PACK_Y - 3; // mailer top while it forms in the robot
 const MAILER_DOWN = CONVEYOR_Y + 5; // mailer top on the belt
 
-const TAU = 0.1; // real seconds for a slide to cover 63% of the way
-const DEPOSIT = 0.35; // real seconds for the robot to set a mailer on the belt
+// Slides ease out: a slide covers 95% of the way in 0.24 s (STYLE.md: motion).
+const TAU = 0.08; // real seconds for a slide to cover 63% of the way
+const DEPOSIT = 0.25; // real seconds for the robot to set a mailer on the belt
 const NEAR = 0.2; // snap when this close (SVG units)
 
 interface Body {
@@ -44,7 +45,7 @@ export interface MailerView {
   x: number;
   y: number;
   // pack: cubes still sliding into the robot (mailer not drawn yet)
-  // drop: set straight down onto the belt
+  // drop: set straight down onto the belt (ease out)
   // belt: carried at belt speed, then removed under the bin
   stage: "pack" | "drop" | "belt";
   drop: number; // 0..1 through the deposit
@@ -155,7 +156,7 @@ export function updateView(v: View, s: Sim, dt: number): boolean {
     }
     if (mv.stage === "drop") {
       mv.drop = snap ? 1 : Math.min(1, mv.drop + dt / DEPOSIT);
-      const e = mv.drop * mv.drop * (3 - 2 * mv.drop); // ease in and out
+      const e = 1 - Math.pow(1 - mv.drop, 3); // ease out
       mv.y = MAILER_UP + (MAILER_DOWN - MAILER_UP) * e;
       moving = true;
       if (mv.drop >= 1) mv.stage = "belt";

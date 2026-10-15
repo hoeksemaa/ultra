@@ -1,6 +1,6 @@
 import { C } from "./tokens";
 
-// Progress ring: a gray track, and an arc that runs clockwise from the top.
+// Progress ring: a faint track, and an arc that runs clockwise from the top.
 export default function Ring({
   cx,
   cy,
@@ -19,7 +19,7 @@ export default function Ring({
   const c = 2 * Math.PI * r;
   return (
     <g>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.w12} strokeWidth={width} />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.line} strokeWidth={width} />
       {value !== null && value > 0 && (
         <circle
           cx={cx}

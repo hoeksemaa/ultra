@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OP1 Fleet Console",
+  title: "OP1 fleet console",
   description:
     "Unofficial demo by John Hoeksema: a simulated fleet console for Ultra OP1 packing robots, with remote teleop pilots.",
 };
