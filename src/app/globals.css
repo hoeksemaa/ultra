@@ -544,7 +544,7 @@ kbd {
 
 /* Narrow screens: stack the floor, the panel bar, and the panel. */
 @media (max-width: 900px) {
-  .app { height: auto; min-height: 100vh; grid-template-rows: auto auto; }
+  .app { height: auto; min-height: 100vh; grid-template-rows: auto auto; align-content: start; }
   .hud {
     display: flex;
     flex-wrap: wrap;
