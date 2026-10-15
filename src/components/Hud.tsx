@@ -1,6 +1,6 @@
 // The top bar: time, autonomy, and the pilot team. It has no title and no
 // labels; each control shows what it is, and hover tells the rest.
-import { Bot, Minus, Plus, RotateCcw } from "lucide-react";
+import { Bot, CircleHelp, Minus, Plus, RotateCcw } from "lucide-react";
 import { fmtClock, pilotWanted, type Sim } from "@/sim/engine";
 import { PilotBadge, TimeIcon } from "./glyphs";
 
@@ -11,10 +11,12 @@ interface Props {
   sim: Sim;
   paused: boolean;
   speed: number;
+  helpDot: boolean;
   onPause: () => void;
   onSpeed: (v: number) => void;
   onReset: () => void;
   onPilots: (n: number) => void;
+  onHelp: () => void;
 }
 
 // Autonomy as a tally: one bar per recent order. Green: the robot packed it
@@ -36,7 +38,7 @@ function Autonomy({ recent }: { recent: boolean[] }) {
   );
 }
 
-export default function Hud({ sim, paused, speed, onPause, onSpeed, onReset, onPilots }: Props) {
+export default function Hud({ sim, paused, speed, helpDot, onPause, onSpeed, onReset, onPilots, onHelp }: Props) {
   const s = sim;
   const wanted = pilotWanted(s);
   return (
@@ -93,6 +95,9 @@ export default function Hud({ sim, paused, speed, onPause, onSpeed, onReset, onP
             </button>
           </div>
         </div>
+        <button className={`tool help ${helpDot ? "dot" : ""}`} onClick={onHelp} aria-label="Help" data-tip="ctl:help" data-tour="help">
+          <CircleHelp size={20} />
+        </button>
       </div>
     </header>
   );

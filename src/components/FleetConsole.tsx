@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { GraspClass } from "@/sim/catalog";
 import { STEP, createSim, setPilotTarget, step, train, type Sim } from "@/sim/engine";
 import FloorView, { type Focus } from "./FloorView";
-import Hud from "./Hud";
+import Hud, { SPEEDS } from "./Hud";
 import { AlertsPanel, ContextBar, ModelPanel, OrdersPanel, type PanelId } from "./Inspector";
 import { createView, updateView, type View } from "./motion";
 import { TipLayer, tipFor } from "./tips";
+import Tour from "./Tour";
 
 // The sim and its view always change together, so they live in one state.
 interface World {
@@ -17,6 +18,29 @@ interface World {
 
 function newWorld(): World {
   return { sim: createSim(), view: createView() };
+}
+
+// The help button shows an orange dot until the viewer opens help once.
+const HELP_KEY = "op1-help-seen";
+const helpEvent = "op1-help-seen";
+function subscribeHelp(cb: () => void) {
+  window.addEventListener(helpEvent, cb);
+  return () => window.removeEventListener(helpEvent, cb);
+}
+function helpSeen() {
+  try {
+    return localStorage.getItem(HELP_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+function markHelpSeen() {
+  try {
+    localStorage.setItem(HELP_KEY, "1");
+  } catch {
+    // Storage can be off; the dot then stays for this visit only.
+  }
+  window.dispatchEvent(new Event(helpEvent));
 }
 
 // What a hovered element points at on the floor.
@@ -44,11 +68,14 @@ export default function FleetConsole() {
   const [selectedOrder, setSelectedOrder] = useState<number | null>(null);
   const [panel, setPanel] = useState<PanelId | null>(null);
   const [hover, setHover] = useState<Hover | null>(null);
-  const live = useRef({ world, speed, paused });
+  const [tour, setTour] = useState(false);
+  const [detail, setDetail] = useState(false);
+  const seen = useSyncExternalStore(subscribeHelp, helpSeen, () => true);
+  const live = useRef({ world, speed, paused, tour, panel });
 
   useEffect(() => {
-    live.current = { world, speed, paused };
-  }, [world, speed, paused]);
+    live.current = { world, speed, paused, tour, panel };
+  }, [world, speed, paused, tour, panel]);
 
   // Fixed-step loop: the same seed gives the same shift on every run.
   useEffect(() => {
@@ -81,6 +108,51 @@ export default function FleetConsole() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
+  const openHelp = useCallback(() => {
+    setTour(true);
+    markHelpSeen();
+  }, []);
+
+  // Keys, as in most sim games: Space pauses, 1 2 3 set the speed, ? opens
+  // help, Esc closes a panel, and Alt shows the numbers on the floor.
+  useEffect(() => {
+    const onDown = (e: KeyboardEvent) => {
+      if (e.key === "Alt") {
+        e.preventDefault();
+        setDetail(true);
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      // A focused button or row handles its own Space and Enter.
+      if (t?.closest("button, a, [role=button]") && (e.key === " " || e.key === "Enter")) return;
+      const k = SPEEDS[Number(e.key) - 1];
+      if (e.key === " ") {
+        setPaused((p) => !p);
+      } else if (k) {
+        setSpeed(k);
+        setPaused(false);
+      } else if (e.key === "?") {
+        openHelp();
+      } else if (e.key === "Escape" && !live.current.tour) {
+        setPanel(null);
+      } else return;
+      e.preventDefault();
+    };
+    const onUp = (e: KeyboardEvent) => {
+      if (e.key === "Alt") setDetail(false);
+    };
+    const onBlur = () => setDetail(false);
+    window.addEventListener("keydown", onDown);
+    window.addEventListener("keyup", onUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onDown);
+      window.removeEventListener("keyup", onUp);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [openHelp]);
+
   const changePilots = (n: number) => {
     setPilotTarget(sim, sim.pilotTarget + n);
     setFrame((f) => f + 1);
@@ -90,6 +162,9 @@ export default function FleetConsole() {
   const onSelectOrder = useCallback((id: number) => {
     setSelectedOrder((cur) => (cur === id ? null : id));
   }, []);
+
+  const onPanel = useCallback((p: PanelId) => setPanel(p), []);
+  const closeTour = useCallback(() => setTour(false), []);
 
   // One hover popup for the whole console. Any element with data-tip opens it.
   // A mouse click hides it until the pointer leaves that element.
@@ -108,15 +183,20 @@ export default function FleetConsole() {
     clicked.current = (e.target as Element).closest("[data-tip]");
     setHover(null);
   };
+  // A mouse click leaves no focus behind, so Space still pauses.
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse") (e.target as Element).closest("button")?.blur();
+  };
 
   const tipCtx = { sim, view, paused };
 
   return (
-    <div className="app" onPointerOver={onPointerOver} onPointerLeave={onPointerLeave} onPointerDown={onPointerDown}>
+    <div className="app" onPointerOver={onPointerOver} onPointerLeave={onPointerLeave} onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
       <Hud
         sim={sim}
         paused={paused}
         speed={speed}
+        helpDot={!seen}
         onPause={() => setPaused((p) => !p)}
         onSpeed={(v) => {
           setSpeed(v);
@@ -129,11 +209,12 @@ export default function FleetConsole() {
           setSelectedOrder(null);
         }}
         onPilots={changePilots}
+        onHelp={openHelp}
       />
 
       <main className={`main ${panel ? "with-panel" : ""}`}>
         <div className="floor">
-          <FloorView sim={sim} view={view} selectedOrder={selectedOrder} focus={focusOf(hover?.key ?? null, sim)} detail={false} />
+          <FloorView sim={sim} view={view} selectedOrder={selectedOrder} focus={focusOf(hover?.key ?? null, sim)} detail={detail} />
         </div>
         {panel && (
           <aside className="inspector" aria-label={panel}>
@@ -157,6 +238,7 @@ export default function FleetConsole() {
       </main>
 
       <TipLayer el={hover?.el ?? null} body={hover ? tipFor(hover.key, tipCtx) : null} />
+      {tour && <Tour onClose={closeTour} onPanel={onPanel} />}
     </div>
   );
 }
