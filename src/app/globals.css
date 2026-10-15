@@ -7,12 +7,14 @@
   --white-30: rgba(255, 255, 255, 0.3);
   --white-12: rgba(255, 255, 255, 0.12);
   --white-04: rgba(255, 255, 255, 0.04);
+  --panel: #242424;
   --paper: #eef1f5;
   --orange: #ff4f00; /* attention + action only */
 
   --ok: #22c55e; /* good, no action */
   --watch: #facc15; /* monitor */
   --fault: #f43f5e; /* human must act */
+  --pilot: #60a5fa; /* a remote pilot, and the robot it controls */
   --idle: rgba(255, 255, 255, 0.5);
 
   --font-sans: var(--font-geist-sans), "Inter", system-ui, sans-serif;
@@ -89,99 +91,110 @@ button {
 /* ---------- App frame ---------- */
 .app {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   height: 100vh;
   min-height: 640px;
 }
 
-.hdr {
-  display: flex;
+/* ---------- Top bar ---------- */
+.hud {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 28px;
-  padding: 16px 28px;
+  gap: 24px;
+  padding: 12px 20px;
   border-bottom: var(--hairline);
-  flex-wrap: wrap;
 }
-
-.hdr .eyebrow {
-  color: var(--orange);
-  font-size: 13px;
-  margin-bottom: 6px;
-}
-
-.hdr h1 {
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
-
-.hdr .clock {
-  font-size: 28px;
-  line-height: 1;
-  color: var(--white-70);
-}
-
-/* Fleet KPIs, in the header between the clock and the controls. */
-.hkpis { display: flex; }
-.hkpi {
-  padding: 2px 22px;
-  border-left: var(--hairline-soft);
-}
-.hkpi .k { font-size: 12px; }
-.hkpi .v {
-  font-size: 28px;
-  line-height: 1.05;
-  margin-top: 4px;
-}
-
-.controls {
-  margin-left: auto;
+.hud-l,
+.hud-r,
+.pilots {
   display: flex;
+  align-items: center;
   gap: 14px;
-  align-items: center;
-  flex-wrap: wrap;
 }
+.hud-r { justify-self: end; gap: 20px; }
 
-.ctl-row {
-  display: flex;
-  align-items: center;
-}
+.seg { display: flex; }
 
-.ctl-lbl {
-  margin-right: 10px;
-}
-
-.chip {
-  font-family: var(--font-mono);
-  font-size: 15px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+/* Square icon buttons. Active: white. Call to action: orange. */
+.tool {
+  position: relative;
   height: 38px;
-  min-width: 44px;
-  padding: 0 12px;
+  min-width: 42px;
+  padding: 0 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--white-50);
+  border: 1px solid var(--white-30);
   margin-left: -1px;
-  transition: background 150ms ease-out, color 150ms ease-out;
+  color: var(--white-70);
+  transition: background 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
 }
-.chip:first-child { margin-left: 0; }
-.chip:hover { border-color: var(--white); z-index: 1; }
-.chip.on {
+.seg .tool:first-child { margin-left: 0; }
+.tool:hover:not(:disabled) { color: var(--white); border-color: var(--white-70); z-index: 1; }
+.tool.on {
+  background: var(--white);
+  border-color: var(--white);
+  color: var(--charcoal);
+  z-index: 2;
+}
+.tool.cta {
   background: var(--orange);
   border-color: var(--orange);
   color: var(--charcoal);
   z-index: 2;
 }
-.chip.value {
-  cursor: default;
-  min-width: 48px;
-  border-color: var(--white-50);
+.tool.cta:hover:not(:disabled) { color: var(--charcoal); border-color: var(--orange); filter: brightness(1.08); }
+.tool:disabled { opacity: 0.35; cursor: default; }
+.tool.bare { border: none; min-width: 32px; height: 32px; padding: 0; }
+
+/* A small orange square: something new to look at. */
+.tool.dot::after,
+.badge-dot {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  background: var(--orange);
 }
-.chip.value:hover { border-color: var(--white-50); }
+.ctx .badge-dot { top: -5px; right: -6px; }
+
+.clock {
+  font-size: 22px;
+  color: var(--white);
+  min-width: 8ch;
+  text-align: center;
+}
+
+/* Autonomy tally: one bar per recent order. */
+.auto {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+.auto-ico { color: var(--white-50); flex: none; }
+.ticks {
+  display: flex;
+  gap: 2px;
+  height: 24px;
+}
+.ticks i {
+  display: block;
+  width: 3px;
+  background: var(--white-12);
+}
+.ticks i.alone { background: var(--ok); }
+.ticks i.helped { background: var(--pilot); }
+
+.roster {
+  display: flex;
+  gap: 2px;
+}
+.pilot { display: block; line-height: 0; cursor: help; }
+.pilot-badge { display: block; }
 
 /* Primary button: solid orange with 4 square corner ticks. */
 .btn-primary {
@@ -212,7 +225,7 @@ button {
 .floor {
   position: relative;
   min-height: 0;
-  padding: 12px 16px;
+  padding: 12px 16px 30px;
 }
 
 .floor svg {
@@ -221,17 +234,22 @@ button {
   display: block;
 }
 
-.ftr {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 8px 28px;
-  border-top: var(--hairline);
+.hint { cursor: help; }
+
+/* The one credit, bottom right of the floor. */
+.credit {
+  position: absolute;
+  right: 16px;
+  bottom: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: var(--white-50);
-  font-size: 13px;
-  flex-wrap: wrap;
+  text-decoration: none;
 }
-.ftr a { color: var(--white-70); }
+.credit:hover { color: var(--white); }
 
 /* ---------- Side panel ---------- */
 .side {
@@ -357,8 +375,6 @@ button {
   letter-spacing: 0.02em;
 }
 
-.hint { cursor: help; }
-
 /* Hover popup on the pick floor */
 .tip {
   display: inline-block;
@@ -375,19 +391,14 @@ button {
   color: var(--white-70);
 }
 
-/* Laptop widths: a tighter header, so it stays on one line. */
-@media (max-width: 1480px) {
-  .hdr { gap: 18px; padding: 14px 20px; }
-  .hdr h1 { font-size: 30px; }
-  .hdr .eyebrow { font-size: 12px; }
-  .hdr .clock { font-size: 24px; }
-  .hkpi { padding: 2px 14px; }
-  .hkpi .k { font-size: 11px; }
-  .hkpi .v { font-size: 24px; }
-  .controls { gap: 10px; }
-  .chip { font-size: 14px; height: 34px; min-width: 40px; padding: 0 10px; }
-  .chip.value { min-width: 42px; }
-  .ctl-lbl { font-size: 14px; }
+/* Laptop widths: a tighter top bar. */
+@media (max-width: 1280px) {
+  .hud { gap: 16px; padding: 10px 14px; }
+  .hud-l, .pilots { gap: 10px; }
+  .hud-r { gap: 12px; }
+  .tool { min-width: 36px; height: 34px; padding: 0 7px; }
+  .clock { font-size: 18px; }
+  .ticks i { width: 2px; }
 }
 
 /* Short screens: tighter side panel rows. */
@@ -404,12 +415,29 @@ button {
 
 /* Narrow screens: stack the panels. */
 @media (max-width: 900px) {
-  .app { height: auto; }
-  .hdr { padding: 12px 16px; gap: 12px; }
-  .controls { margin-left: 0; }
+  .app { height: auto; min-height: 100vh; grid-template-rows: auto auto; }
+  .hud {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px 12px;
+    padding: 10px 12px;
+  }
+  .hud-l { gap: 8px; }
+  .hud-r { gap: 8px; }
+  .auto { order: 3; width: 100%; }
+  .ticks { flex: 1; }
+  .ticks i { flex: 1; width: auto; }
+  .tool { min-width: 34px; height: 34px; padding: 0 6px; }
+  .clock { font-size: 16px; min-width: 0; }
   .main { grid-template-columns: minmax(0, 1fr); }
-  .floor { height: 70vw; padding: 4px; }
+  .floor { padding: 6px 4px 30px; }
+  .floor svg { height: auto; }
   .side { border-left: none; border-top: var(--hairline); }
   .panel-body { max-height: 320px; }
-  .ftr { padding: 6px 16px; }
+}
+
+@media (max-width: 420px) {
+  .roster { gap: 0; }
+  .pilot-badge { width: 24px; height: 24px; }
 }

@@ -1,22 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { STEP, autonomy, createSim, fmtClock, ordersPerHour, setPilotTarget, step, train, type Sim } from "@/sim/engine";
+import { STEP, createSim, setPilotTarget, step, train, type Sim } from "@/sim/engine";
 import FloorView from "./FloorView";
+import Hud from "./Hud";
 import { createView, updateView, type View } from "./motion";
 import SidePanel from "./SidePanel";
-import { pct } from "./tokens";
-
-const SPEEDS = [1, 10, 60];
-
-function Kpi({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="hkpi">
-      <div className="label faint k">{label}</div>
-      <div className="v metric">{value}</div>
-    </div>
-  );
-}
 
 // The sim and its view always change together, so they live in one state.
 interface World {
@@ -82,63 +71,32 @@ export default function FleetConsole() {
     setSelectedOrder((cur) => (cur === id ? null : id));
   }, []);
 
-  const perHour = ordersPerHour(sim);
-  const auto = autonomy(sim);
-  const busy = sim.pilots.filter((p) => p.robot !== null).length;
-
   return (
     <div className="app">
-      <header className="hdr">
-        <div>
-          <div className="label eyebrow">Unofficial demo by John Hoeksema</div>
-          <h1>OP1 Fleet Console</h1>
-        </div>
-        <div className="metric clock">{fmtClock(sim.t)}</div>
-        <div className="hkpis">
-          <Kpi label="Orders / hr" value={perHour === null ? "—" : String(Math.round(perHour))} />
-          <Kpi label="Autonomy" value={auto === null ? "—" : pct(auto, 0)} />
-          <Kpi label="Pilots busy" value={`${busy}/${sim.pilots.length}`} />
-        </div>
-        <div className="controls">
-          <div className="ctl-row">
-            <button className="chip" onClick={() => setPaused((p) => !p)}>
-              {paused ? "Play" : "Pause"}
-            </button>
-            <button
-              className="chip"
-              onClick={() => {
-                const w = newWorld();
-                live.current = { ...live.current, world: w };
-                setWorld(w);
-                setSelectedOrder(null);
-              }}
-            >
-              Reset
-            </button>
-          </div>
-          <div className="ctl-row">
-            {SPEEDS.map((v) => (
-              <button key={v} className={`chip ${speed === v ? "on" : ""}`} onClick={() => setSpeed(v)}>
-                {v}×
-              </button>
-            ))}
-          </div>
-          <div className="ctl-row">
-            <span className="label faint ctl-lbl">Pilots</span>
-            <button className="chip" onClick={() => changePilots(-1)} aria-label="Remove a pilot">
-              −
-            </button>
-            <span className="chip value metric">{sim.pilotTarget}</span>
-            <button className="chip" onClick={() => changePilots(1)} aria-label="Add a pilot">
-              +
-            </button>
-          </div>
-        </div>
-      </header>
+      <Hud
+        sim={sim}
+        paused={paused}
+        speed={speed}
+        onPause={() => setPaused((p) => !p)}
+        onSpeed={(v) => {
+          setSpeed(v);
+          setPaused(false);
+        }}
+        onReset={() => {
+          const w = newWorld();
+          live.current = { ...live.current, world: w };
+          setWorld(w);
+          setSelectedOrder(null);
+        }}
+        onPilots={changePilots}
+      />
 
       <main className="main">
         <div className="floor">
           <FloorView sim={sim} view={view} selectedOrder={selectedOrder} focus={{ robot: null, cls: null }} detail={false} />
+          <a className="credit" href="https://github.com/hoeksemaa">
+            Unofficial demo · made by John
+          </a>
         </div>
         <SidePanel
           sim={sim}
@@ -153,10 +111,6 @@ export default function FleetConsole() {
         />
       </main>
 
-      <footer className="ftr label">
-        <span>Not affiliated with Ultra · all brands and data are fictional</span>
-        <a href="https://github.com/hoeksemaa/ultra">github.com/hoeksemaa/ultra</a>
-      </footer>
     </div>
   );
 }

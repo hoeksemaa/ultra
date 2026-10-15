@@ -716,6 +716,11 @@ export function actions(s: Sim): Action[] {
   return rows;
 }
 
+// True when a robot has waited 30 s for a pilot and the team can grow.
+export function pilotWanted(s: Sim): boolean {
+  return s.pilots.length < 10 && s.robots.some((r) => r.phase === "pilot_wait" && s.t - r.since > 30);
+}
+
 export function fmtDur(sec: number): string {
   const m = Math.floor(sec / 60);
   const ss = Math.floor(sec % 60);
