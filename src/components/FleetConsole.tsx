@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { GraspClass } from "@/sim/catalog";
 import { STEP, createSim, setPilotTarget, step, train, type Sim } from "@/sim/engine";
-import FloorView from "./FloorView";
+import FloorView, { type Focus } from "./FloorView";
 import Hud from "./Hud";
 import { AlertsPanel, ContextBar, ModelPanel, OrdersPanel, type PanelId } from "./Inspector";
 import { createView, updateView, type View } from "./motion";
+import { TipLayer, tipFor } from "./tips";
 
 // The sim and its view always change together, so they live in one state.
 interface World {
@@ -17,6 +19,22 @@ function newWorld(): World {
   return { sim: createSim(), view: createView() };
 }
 
+// What a hovered element points at on the floor.
+function focusOf(key: string | null, s: Sim): Focus {
+  const none: Focus = { robot: null, cls: null };
+  if (!key) return none;
+  const [kind, a] = key.split(":");
+  if (kind === "robot") return { robot: Number(a), cls: null };
+  if (kind === "pilot") return { robot: s.pilots.find((p) => p.id === Number(a))?.robot ?? null, cls: null };
+  if (kind === "class") return { robot: null, cls: a as GraspClass };
+  return none;
+}
+
+interface Hover {
+  key: string;
+  el: Element;
+}
+
 export default function FleetConsole() {
   const [world, setWorld] = useState<World>(newWorld);
   const { sim, view } = world;
@@ -25,6 +43,7 @@ export default function FleetConsole() {
   const [paused, setPaused] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<number | null>(null);
   const [panel, setPanel] = useState<PanelId | null>(null);
+  const [hover, setHover] = useState<Hover | null>(null);
   const live = useRef({ world, speed, paused });
 
   useEffect(() => {
@@ -72,8 +91,28 @@ export default function FleetConsole() {
     setSelectedOrder((cur) => (cur === id ? null : id));
   }, []);
 
+  // One hover popup for the whole console. Any element with data-tip opens it.
+  // A mouse click hides it until the pointer leaves that element.
+  const clicked = useRef<Element | null>(null);
+  const onPointerOver = (e: React.PointerEvent) => {
+    const el = (e.target as Element).closest("[data-tip]");
+    if (el !== clicked.current) clicked.current = null;
+    if (el === (hover?.el ?? null) || (el && el === clicked.current)) return;
+    setHover(el ? { key: el.getAttribute("data-tip")!, el } : null);
+  };
+  const onPointerLeave = (e: React.PointerEvent) => {
+    if (e.pointerType !== "touch") setHover(null);
+  };
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType !== "mouse") return;
+    clicked.current = (e.target as Element).closest("[data-tip]");
+    setHover(null);
+  };
+
+  const tipCtx = { sim, view, paused };
+
   return (
-    <div className="app">
+    <div className="app" onPointerOver={onPointerOver} onPointerLeave={onPointerLeave} onPointerDown={onPointerDown}>
       <Hud
         sim={sim}
         paused={paused}
@@ -94,7 +133,7 @@ export default function FleetConsole() {
 
       <main className={`main ${panel ? "with-panel" : ""}`}>
         <div className="floor">
-          <FloorView sim={sim} view={view} selectedOrder={selectedOrder} focus={{ robot: null, cls: null }} detail={false} />
+          <FloorView sim={sim} view={view} selectedOrder={selectedOrder} focus={focusOf(hover?.key ?? null, sim)} detail={false} />
         </div>
         {panel && (
           <aside className="inspector" aria-label={panel}>
@@ -117,6 +156,7 @@ export default function FleetConsole() {
         </a>
       </main>
 
+      <TipLayer el={hover?.el ?? null} body={hover ? tipFor(hover.key, tipCtx) : null} />
     </div>
   );
 }
