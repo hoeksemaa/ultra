@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pause, Play, RotateCcw, Undo2 } from "lucide-react";
+import { CircleHelp, Pause, Play, RotateCcw, Undo2 } from "lucide-react";
 import {
   ROBOT_Y,
   STEP,
@@ -11,6 +11,7 @@ import {
   fmtClock,
   newData,
   ordersPerHour,
+  robotStatus,
   setPilotTarget,
   step,
   train,
@@ -23,6 +24,7 @@ import ModelPanel from "./ModelPanel";
 import { createView, updateView, type View } from "./motion";
 import { pct } from "./tokens";
 import { TipLayer, useTips, type TipBind } from "./Tooltip";
+import Tutorial from "./Tutorial";
 
 const SPEEDS = [1, 10, 60];
 const UNDO_MS = 8000;
@@ -65,6 +67,7 @@ export default function FleetConsole() {
   const [paused, setPaused] = useState(false);
   const [selected, setSelected] = useState<Order | null>(null);
   const [undo, setUndo] = useState<World | null>(null);
+  const [tour, setTour] = useState<number | null>(null);
   const { tip, bind, hide } = useTips();
   const live = useRef({ world, speed, paused, undo });
   const undoTimer = useRef<number | undefined>(undefined);
@@ -189,8 +192,12 @@ export default function FleetConsole() {
         case "R":
           reset();
           break;
+        case "?":
+          setTour((t) => (t === null ? 0 : null));
+          break;
         case "Escape":
           setSelected(null);
+          setTour(null);
           break;
       }
     };
@@ -208,6 +215,11 @@ export default function FleetConsole() {
 
   const perHour = ordersPerHour(sim);
   const auto = autonomy(sim);
+  const ready = {
+    act: sim.robots.some((r) => robotStatus(sim, r) === "act"),
+    pilot: sim.robots.some((r) => r.phase === "pilot" || r.phase === "pilot_wait"),
+    data: newData(sim) >= 10,
+  };
 
   return (
     <div className="app">
@@ -252,6 +264,14 @@ export default function FleetConsole() {
               </div>
             )}
           </div>
+          <button
+            className="ctl icon"
+            aria-label="Help"
+            {...bind("help", { kind: "ui", title: "Help", keys: "?" })}
+            onClick={() => setTour((t) => (t === null ? 0 : null))}
+          >
+            <CircleHelp size={18} strokeWidth={2} />
+          </button>
         </div>
       </header>
 
@@ -278,6 +298,7 @@ export default function FleetConsole() {
       </main>
 
       <TipLayer tip={tip} sim={sim} />
+      <Tutorial ready={ready} tour={tour} setTour={setTour} />
     </div>
   );
 }
