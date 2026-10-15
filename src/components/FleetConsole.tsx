@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { STEP, createSim, setPilotTarget, step, train, type Sim } from "@/sim/engine";
 import FloorView from "./FloorView";
 import Hud from "./Hud";
+import { AlertsPanel, ContextBar, ModelPanel, OrdersPanel, type PanelId } from "./Inspector";
 import { createView, updateView, type View } from "./motion";
-import SidePanel from "./SidePanel";
 
 // The sim and its view always change together, so they live in one state.
 interface World {
@@ -24,6 +24,7 @@ export default function FleetConsole() {
   const [speed, setSpeed] = useState(10);
   const [paused, setPaused] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<number | null>(null);
+  const [panel, setPanel] = useState<PanelId | null>(null);
   const live = useRef({ world, speed, paused });
 
   useEffect(() => {
@@ -91,24 +92,29 @@ export default function FleetConsole() {
         onPilots={changePilots}
       />
 
-      <main className="main">
+      <main className={`main ${panel ? "with-panel" : ""}`}>
         <div className="floor">
           <FloorView sim={sim} view={view} selectedOrder={selectedOrder} focus={{ robot: null, cls: null }} detail={false} />
-          <a className="credit" href="https://github.com/hoeksemaa">
-            Unofficial demo · made by John
-          </a>
         </div>
-        <SidePanel
-          sim={sim}
-          view={view}
-          selectedOrder={selectedOrder}
-          onSelectOrder={onSelectOrder}
-          onAddPilot={() => changePilots(1)}
-          onTrain={() => {
-            train(sim);
-            setFrame((f) => f + 1);
-          }}
-        />
+        {panel && (
+          <aside className="inspector" aria-label={panel}>
+            {panel === "alerts" && <AlertsPanel sim={sim} />}
+            {panel === "orders" && <OrdersPanel sim={sim} view={view} selectedOrder={selectedOrder} onSelectOrder={onSelectOrder} />}
+            {panel === "model" && (
+              <ModelPanel
+                sim={sim}
+                onTrain={() => {
+                  train(sim);
+                  setFrame((f) => f + 1);
+                }}
+              />
+            )}
+          </aside>
+        )}
+        <ContextBar sim={sim} open={panel} onToggle={(id) => setPanel((cur) => (cur === id ? null : id))} />
+        <a className="credit" href="https://github.com/hoeksemaa">
+          Unofficial demo · made by John
+        </a>
       </main>
 
     </div>

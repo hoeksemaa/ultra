@@ -679,40 +679,31 @@ export function train(s: Sim) {
 }
 
 export interface Action {
-  key: string;
-  level: "fault" | "watch" | "rec";
-  robot: number | null;
-  title: string;
-  detail: string;
+  robot: number;
+  level: "fault" | "watch";
+  item: Item | null;
+  fault: string | null;
   wait: number;
 }
 
-// Robots that need attention: red first, then yellow, oldest first.
-// A recommendation goes on top.
+// Robots that need attention: red first, then yellow, oldest first. A robot
+// with a pilot in control is handled, so it is not in the list.
 export function actions(s: Sim): Action[] {
   const rows: Action[] = [];
   for (const r of s.robots) {
     const light = robotLight(r);
     const wait = s.t - r.since;
-    if (light === "ok" || (r.phase === "idle" && wait < 10)) continue;
-    const st = r.steps[0];
+    if (light === "ok" || r.phase === "pilot" || (r.phase === "idle" && wait < 10)) continue;
     rows.push({
-      key: `r${r.id}`,
-      level: light,
       robot: r.id,
-      // The action queue spells out why a pilot is needed.
-      title: r.phase === "pilot_wait" ? "Error handling item - need pilot" : robotLabel(r),
-      detail: r.phase === "fault" ? st.fault! : (currentItem(s, r)?.name ?? ""),
+      level: light,
+      item: currentItem(s, r),
+      fault: r.phase === "fault" ? r.steps[0].fault! : null,
       wait,
     });
   }
-  const rank = { rec: 0, fault: 1, watch: 2 };
+  const rank = { fault: 0, watch: 1 };
   rows.sort((a, b) => rank[a.level] - rank[b.level] || b.wait - a.wait);
-
-  const stuck = s.robots.some((r) => r.phase === "pilot_wait" && s.t - r.since > 30);
-  if (stuck && s.pilots.length < 10) {
-    rows.unshift({ key: "rec-pilot", level: "rec", robot: null, title: "Add a pilot", detail: "Robots wait for a pilot", wait: 0 });
-  }
   return rows;
 }
 
