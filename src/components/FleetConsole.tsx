@@ -138,7 +138,7 @@ export default function FleetConsole() {
 
       <main className="main">
         <div className="floor">
-          <FloorView sim={sim} view={view} selectedOrder={selectedOrder} />
+          <FloorView sim={sim} view={view} selectedOrder={selectedOrder} focus={{ robot: null, cls: null }} detail={false} />
         </div>
         <SidePanel
           sim={sim}

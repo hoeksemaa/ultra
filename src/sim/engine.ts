@@ -45,8 +45,9 @@ export const CONVEYOR_X0 = LINE_X0;
 export const CONVEYOR_Y = ROBOT_Y + ROBOT_H + 38;
 export const CONVEYOR_H = 22;
 
-export const PILOT_Y = CONVEYOR_Y + 70;
-export const VIEW_H = PILOT_Y + 64;
+// The floor view crops to the racks, the pack line, and the belt.
+export const VIEW_Y0 = RACK_Y;
+export const VIEW_H = CONVEYOR_Y + CONVEYOR_H + 12;
 
 const WALK_SPEED = 15; // units/s (1.5 m/s)
 export const CONVEYOR_SPEED = 8; // units/s (0.8 m/s)
@@ -119,6 +120,9 @@ function walk(m: { x: number; y: number; path: Pt[] }, dt: number): boolean {
 export type Phase = "idle" | "pack" | "regrasp" | "pilot_wait" | "pilot" | "fault";
 
 export type Light = "ok" | "watch" | "fault";
+
+// What a robot shows: its light, or pilot blue while a pilot is in control.
+export type Tone = Light | "pilot";
 
 export type OrderStatus = "queued" | "picking" | "staged" | "packing" | "conveyor";
 
@@ -588,6 +592,10 @@ export function robotLight(r: Robot): Light {
     default:
       return "fault";
   }
+}
+
+export function robotTone(r: Robot): Tone {
+  return r.phase === "pilot" ? "pilot" : robotLight(r);
 }
 
 // Share of the current item that is done, or null with no order. One full
