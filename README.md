@@ -13,7 +13,9 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000. Press `?` in the app for a short tour. Hover anything for details.
+
+Keys: `Space` pause, `1` `2` `3` speed, `?` help, hold `Alt` for stock counts.
 
 ## Deploy
 
